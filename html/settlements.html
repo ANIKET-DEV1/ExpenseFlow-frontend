@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settlements — ExpenseTracker</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+<nav class="topnav" id="topnav"></nav>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main">
+    <div class="page">
+
+      <div class="page-head">
+        <div>
+          <div class="page-title">Settlements</div>
+          <div class="page-sub">Track money you owe and money owed to you</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('addDebtModal')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          Add Settlement
+        </button>
+      </div>
+
+      <div class="stat-row" id="debtStats">
+        <div class="stat-card r"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+        <div class="stat-card g"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+        <div class="stat-card a"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+        <div class="stat-card b"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+      </div>
+
+      <div class="seg-tabs">
+        <div class="seg-tab active" id="tabAll">All</div>
+        <div class="seg-tab" id="tabPending">Pending</div>
+        <div class="seg-tab" id="tabPaid">Paid</div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="debtView" class="table-wrap">
+          <div style="padding:24px"><div class="skel skel-row"></div><div class="skel skel-row"></div><div class="skel skel-row"></div></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Add Settlement Modal -->
+<div class="overlay" id="addDebtModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Add Settlement</div>
+      <button class="modal-close" onclick="closeModal('addDebtModal')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <form id="addDebtForm">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label" for="debtPerson">Person Name</label>
+          <input class="form-input" id="debtPerson" type="text" minlength="2" maxlength="50" placeholder="e.g. Rahul" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="debtAmount">Amount (₹)</label>
+          <input class="form-input" id="debtAmount" type="number" step="1" min="1" placeholder="0" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="debtDate">Date</label>
+          <input class="form-input" id="debtDate" type="date" required>
+        </div>
+        <div class="form-group full">
+          <label class="form-label" for="debtType">Type</label>
+          <select class="form-select" id="debtType" required>
+            <option value="lent">Lent — they owe me</option>
+            <option value="borrowed">Borrowed — I owe them</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label" for="debtStatus">Status</label>
+          <select class="form-select" id="debtStatus">
+            <option value="pending" selected>Pending</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('addDebtModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="addDebtBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          Add Settlement
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Settlement Modal -->
+<div class="overlay" id="editDebtModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Edit Settlement</div>
+      <button class="modal-close" onclick="closeModal('editDebtModal')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <form id="editDebtForm">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label" for="editPerson">Person Name</label>
+          <input class="form-input" id="editPerson" type="text" minlength="2" maxlength="50" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editAmount">Amount (₹)</label>
+          <input class="form-input" id="editAmount" type="number" step="1" min="1" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editType">Type</label>
+          <select class="form-select" id="editType" required>
+            <option value="lent">Lent</option>
+            <option value="borrowed">Borrowed</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label" for="editStatus">Status</label>
+          <select class="form-select" id="editStatus">
+            <option value="pending">Pending</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('editDebtModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="editDebtBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div class="overlay" id="delDebtModal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head">
+      <div class="modal-title">Delete settlement?</div>
+      <button class="modal-close" onclick="closeModal('delDebtModal')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <p class="confirm-text">Delete the settlement with <strong class="confirm-name" id="delDebtName"></strong>? This cannot be undone.</p>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('delDebtModal')">Cancel</button>
+      <button class="btn btn-danger" id="confirmDebtDelBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth, renderTopnav, renderSidebar } from "../js/utils.js";
+  import { initSettlements } from "../js/settlements.js";
+
+  const user = await requireAuth();
+  if (!user) throw new Error("not authed");
+  renderTopnav(user);
+  renderSidebar();
+  initSettlements();
+</script>
+</body>
+</html>

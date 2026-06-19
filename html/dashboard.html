@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — ExpenseTracker</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+<nav class="topnav" id="topnav"></nav>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main">
+    <div class="page">
+
+      <div class="page-head">
+        <div>
+          <div class="page-title" id="greeting">Good morning</div>
+          <div class="page-sub">Here's your financial snapshot</div>
+        </div>
+      </div>
+
+      <!-- Flash banner -->
+      <div id="flashBanner" class="flash-banner">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span id="flashText"></span>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stat-row" id="statRow">
+        <div class="stat-card g"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+        <div class="stat-card r"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+        <div class="stat-card a"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+        <div class="stat-card b"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+      </div>
+
+      <!-- Recent expenses + top tags -->
+      <div class="dash-grid">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div style="font-weight:700;font-size:0.95rem">Recent Expenses</div>
+            <a href="expenses.html" style="font-size:0.78rem;color:var(--green)">View all →</a>
+          </div>
+          <div id="recentList">
+            <div class="skel skel-row"></div><div class="skel skel-row"></div><div class="skel skel-row"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div style="font-weight:700;font-size:0.95rem">Spending by Tag</div>
+            <a href="tags.html" style="font-size:0.78rem;color:var(--green)">Manage →</a>
+          </div>
+          <div id="tagBreakdown">
+            <div class="skel skel-row"></div><div class="skel skel-row"></div><div class="skel skel-row"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settlement summary -->
+      <div class="card" style="margin-top:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-weight:700;font-size:0.95rem">Settlement Summary</div>
+          <a href="settlements.html" style="font-size:0.78rem;color:var(--green)">View all →</a>
+        </div>
+        <div class="stat-row" id="debtStats" style="margin-bottom:0">
+          <div class="skel" style="height:60px;border-radius:var(--r)"></div>
+          <div class="skel" style="height:60px;border-radius:var(--r)"></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script type="module">
+import { requireAuth, renderTopnav, renderSidebar, showFlash } from "../js/utils.js";
+import { loadDashboard } from "../js/dashboard.js";
+import { initRipples } from "../js/animations.js";
+
+const user = await requireAuth();
+if (!user) throw new Error("not authed");
+
+renderTopnav(user);
+renderSidebar();
+
+const hour  = new Date().getHours();
+const greet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+document.getElementById("greeting").textContent = `${greet}, ${user.username}`;
+
+showFlash();
+loadDashboard();
+initRipples();
+</script>
+</body>
+</html>

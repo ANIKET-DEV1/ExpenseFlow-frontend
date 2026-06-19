@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expenses — ExpenseTracker</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+<nav class="topnav" id="topnav"></nav>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main">
+    <div class="page">
+
+      <div class="page-head">
+        <div>
+          <div class="page-title">Expenses</div>
+          <div class="page-sub">All your logged expenses</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('addModal')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          Add Expense
+        </button>
+      </div>
+
+      <div class="stat-row" id="expenseStats">
+        <div class="stat-card r"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+        <div class="stat-card a"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+        <div class="stat-card g"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+        <div class="stat-card b"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+        <div class="seg-tabs" style="margin-bottom:0">
+          <div class="seg-tab active" id="tabAll"   onclick="switchTab('all')">All</div>
+          <div class="seg-tab"        id="tabTag"   onclick="switchTab('tag')">By Tag</div>
+          <div class="seg-tab"        id="tabMonth" onclick="switchTab('month')">By Month</div>
+        </div>
+        <div class="filter-bar" style="margin-bottom:0">
+          <div class="search-wrap">
+            <span class="search-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </span>
+            <input class="form-input" id="searchInp" placeholder="Search tag or description…" oninput="applyFilter()">
+          </div>
+          <select class="form-select" id="payFilter" onchange="applyFilter()" style="width:auto">
+            <option value="">All payment types</option>
+            <option value="CASH">Cash</option>
+            <option value="UPI">UPI</option>
+            <option value="CARD">Card</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="expenseView" class="table-wrap">
+          <div style="padding:24px"><div class="skel skel-row"></div><div class="skel skel-row"></div><div class="skel skel-row"></div></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Add Expense Modal -->
+<div class="overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Add Expense</div>
+      <button class="modal-close" onclick="closeModal('addModal')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <form id="addForm">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Tag</label>
+          <select class="form-select" id="addTag" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount (₹)</label>
+          <input class="form-input" id="addAmount" type="number" step="0.01" min="1" placeholder="0.00" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input class="form-input" id="addDate" type="date" required>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Payment Type</label>
+          <select class="form-select" id="addPayment" required>
+            <option value="CASH">Cash</option>
+            <option value="UPI">UPI</option>
+            <option value="CARD">Card</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Description (optional)</label>
+          <textarea class="form-textarea" id="addDesc" placeholder="What was this for?"></textarea>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('addModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="addBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          Add Expense
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div class="overlay" id="delModal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head">
+      <div class="modal-title">Delete expense?</div>
+      <button class="modal-close" onclick="closeModal('delModal')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <p class="confirm-text">This will permanently delete this expense. This cannot be undone.</p>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('delModal')">Cancel</button>
+      <button class="btn btn-danger" id="confirmDelBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { requireAuth, renderTopnav, renderSidebar } from "../js/utils.js";
+import { initExpenses } from "../js/expenses.js";
+
+const user = await requireAuth();
+if (!user) throw new Error("not authed");
+renderTopnav(user);
+renderSidebar();
+initExpenses();
+</script>
+</body>
+</html>

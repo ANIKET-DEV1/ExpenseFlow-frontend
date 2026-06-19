@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExpenseFlow — Track every rupee</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+
+<nav class="land-nav">
+  <div class="land-nav-logo">
+    <div class="licon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+    </div>
+    ExpenseFlow
+  </div>
+  <div class="land-nav-links" id="guestNav">
+    <a href="login.html">Login</a>
+    <a href="register.html" class="primary">Get Started</a>
+  </div>
+  <div class="land-nav-links" id="userNav" style="display:none">
+    <a href="dashboard.html" class="primary">Go to Dashboard</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-eyebrow">Personal Finance · Built for India</div>
+  <h1>Know exactly where your<br><em>money goes</em></h1>
+  <p class="hero-sub">Log expenses, settle debts, and spot spending patterns — all in one private, secure space.</p>
+  <div class="hero-cta">
+    <a href="register.html" class="btn btn-primary">Start for free — no card needed</a>
+    <a href="login.html" class="btn btn-ghost">I already have an account</a>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features">
+  <div class="features-head">
+    <h2>Everything you need, nothing you don't</h2>
+    <p>Simple tools that give you real clarity on your spending.</p>
+  </div>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+      </div>
+      <h3>Expense Tracking</h3>
+      <p>Log any expense in seconds. Categorize by tag and payment type — cash, UPI, or card.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+      </div>
+      <h3>Custom Tags</h3>
+      <p>Create your own tags — food, travel, EMI, anything. Group your spending your way.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>
+      </div>
+      <h3>Settlements</h3>
+      <p>Track who owes you and who you owe. Mark debts paid when done.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
+      </div>
+      <h3>Smart Views</h3>
+      <p>See spending grouped by tag or month. Spot patterns instantly.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h3>Private by default</h3>
+      <p>Your data stays yours. Secure session cookies, no third-party trackers.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+      </div>
+      <h3>Works everywhere</h3>
+      <p>Fully responsive. Use it on your phone, tablet, or desktop.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section">
+  <h2>Frequently asked questions</h2>
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">Is my financial data secure?<span class="arrow"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
+    <div class="faq-a">Yes. Your data is stored on a private server and accessible only through your authenticated session. We use secure HTTP-only cookies so your session token is never exposed to JavaScript or third-party scripts.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">How do I add an expense?<span class="arrow"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
+    <div class="faq-a">After logging in, go to Expenses and click "Add Expense". Fill in the amount, pick a tag, choose the payment type (Cash, UPI, or Card), and set the date. That's it — takes under 10 seconds.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">What are tags, and do I need them?<span class="arrow"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
+    <div class="faq-a">Tags are categories you create yourself — like "Groceries", "Rent", or "Petrol". Every expense needs one tag. You can create unlimited tags for free.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">Can I track money I owe or money owed to me?<span class="arrow"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
+    <div class="faq-a">Yes — that's what Settlements are for. Add a record with the person's name, amount, and direction. Mark it paid when done. You can edit amounts and status anytime.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">Can I see my spending month by month?<span class="arrow"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
+    <div class="faq-a">Yes. On the Expenses page, switch to "By Month" view to see expenses grouped by month with totals. Switch to "By Tag" to see per-category breakdowns.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">Is this free to use?<span class="arrow"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
+    <div class="faq-a">Yes, completely free. No subscription, no credit card required. Register and start using it.</div>
+  </div>
+</section>
+
+<footer style="text-align:center;padding:30px;font-size:0.8rem;color:var(--text-faint);border-top:1px solid var(--border)">
+  © 2026 ExpenseFlow — Your money, your data.
+</footer>
+
+<script type="module">
+import { BASE_URL } from "../js/api.js";
+import { initScrollReveal } from "../js/animations.js";
+(async () => {
+  try {
+    const res = await fetch(`${BASE_URL}/auth/me`, { credentials: "include" });
+    const d = await res.json();
+    if (res.ok && d.authenticated) {
+      document.getElementById("guestNav").style.display = "none";
+      document.getElementById("userNav").style.display  = "flex";
+    }
+  } catch {}
+})();
+
+function toggleFaq(el) {
+  const ans    = el.nextElementSibling;
+  const isOpen = ans.classList.contains("open");
+  document.querySelectorAll(".faq-a.open").forEach(a => {
+    a.classList.remove("open");
+    a.previousElementSibling.classList.remove("open");
+  });
+  if (!isOpen) { ans.classList.add("open"); el.classList.add("open"); }
+}
+window.toggleFaq = toggleFaq;
+document.querySelectorAll(".feat-card, .faq-item").forEach(el => el.classList.add("reveal"));
+initScrollReveal(".feat-card, .faq-item");
+</script>
+</body>
+</html>

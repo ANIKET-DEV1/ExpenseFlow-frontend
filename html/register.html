@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — ExpenseTracker</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="licon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+      </div>
+      ExpenseTracker
+    </div>
+    <div class="auth-title">Create your account</div>
+    <div class="auth-sub">Free forever. No credit card needed.</div>
+
+    <form id="regForm" autocomplete="on" novalidate>
+      <div class="form-grid" style="gap:12px">
+        <div class="form-group full">
+          <label class="form-label" for="username">Username</label>
+          <input class="form-input" id="username" name="username" type="text" placeholder="your_username" autocomplete="username" required>
+        </div>
+        <div class="form-group full">
+          <label class="form-label" for="email">Email</label>
+          <input class="form-input" id="email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div class="form-group full">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-input" id="password" name="password" type="password" placeholder="••••••••" autocomplete="new-password" required>
+          <!-- Live password rules -->
+          <div class="pw-rules" id="pwRules">
+            <div class="pw-rule" id="pw-len">
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/></svg>
+              8+ characters
+            </div>
+            <div class="pw-rule" id="pw-upper">
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/></svg>
+              Uppercase letter
+            </div>
+            <div class="pw-rule" id="pw-lower">
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/></svg>
+              Lowercase letter
+            </div>
+            <div class="pw-rule" id="pw-num">
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/></svg>
+              Number
+            </div>
+            <div class="pw-rule" id="pw-sym">
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/></svg>
+              Special character
+            </div>
+          </div>
+        </div>
+        <div class="form-group full">
+          <label class="form-label" for="confirm">Confirm Password</label>
+          <input class="form-input" id="confirm" name="confirm" type="password" placeholder="••••••••" autocomplete="new-password" required>
+        </div>
+      </div>
+
+      <div id="errBox" class="err-box">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+        <span id="errText"></span>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;margin-top:18px;justify-content:center" type="submit" id="submitBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Create account
+      </button>
+    </form>
+
+    <div class="auth-foot">
+      Already have an account? <a href="login.html">Log in</a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { BASE_URL } from "../js/api.js";
+import { showErr, clearErr, validateUsername, validateEmail, validatePassword, PASSWORD_RULES } from "../js/auth.js";
+
+const btn     = document.getElementById("submitBtn");
+const pwInput = document.getElementById("password");
+
+const CHECK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+const RING_SVG  = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/></svg>`;
+
+pwInput.addEventListener("input", () => {
+  const v = pwInput.value;
+  PASSWORD_RULES.forEach(r => {
+    const el = document.getElementById(r.id);
+    if (!el) return;
+    const ok = r.test(v);
+    el.classList.toggle("ok", ok);
+    el.innerHTML = (ok ? CHECK_SVG : RING_SVG) + " " + r.msg;
+  });
+});
+
+document.getElementById("regForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  clearErr("errBox");
+
+  const username = document.getElementById("username").value.trim();
+  const email    = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const confirm  = document.getElementById("confirm").value;
+
+  const errs = [
+    ...validateUsername(username),
+    ...validateEmail(email),
+    ...validatePassword(password),
+    ...(password !== confirm ? ["Passwords do not match."] : []),
+  ];
+
+  if (errs.length) { showErr("errBox", errs); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Creating account…`;
+
+  try {
+    const res = await fetch(`${BASE_URL}/auth/register`, {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password, confirm_password: confirm }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      sessionStorage.setItem("flash", "Account created! Please check your email to verify, then log in.");
+      window.location.href = "login.html";
+    } else {
+      showErr("errBox", [data.detail || "Registration failed. Try again."]);
+    }
+  } catch {
+    showErr("errBox", ["Could not reach the server. Check your connection."]);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Create account`;
+  }
+});
+</script>
+</body>
+</html>
