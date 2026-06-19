@@ -111,9 +111,9 @@ export function renderTopnav(user) {
   const init = esc(user.username[0].toUpperCase());
   nav.innerHTML = `
     <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu">${icon("menu", 20)}</button>
-    <div class="topnav-logo">
+      <div class="topnav-logo">
       <div class="licon">${icon("wallet", 18)}</div>
-      ExpenseTracker
+      ExpenseFlow
     </div>
     <div class="topnav-links">
       <a href="dashboard.html"   class="topnav-link" data-nav="dashboard.html">${icon("layout-dashboard", 15)} Dashboard</a>
