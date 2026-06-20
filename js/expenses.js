@@ -41,12 +41,38 @@ async function loadTags() {
 }
 
 async function loadExpenses() {
+  // Show skeleton while loading
+  document.getElementById("expenseView").innerHTML = `
+    <div style="padding:24px">
+      <div class="skel skel-row"></div>
+      <div class="skel skel-row"></div>
+      <div class="skel skel-row"></div>
+    </div>`;
+
   const res = await apiFetch("/expenses/view_expenses");
-  if (!res) return;
-  if (!res.ok) { showToast("Failed to load expenses.", "error"); return; }
+
+  // Always stop skeleton regardless of result
+  if (!res) {
+    showEmptyState("expenseView", "Could not load expenses. Please try again.", "alert-circle");
+    return;
+  }
+  if (!res.ok) {
+    showEmptyState("expenseView", "Failed to load expenses.", "alert-circle");
+    showToast("Failed to load expenses.", "error");
+    return;
+  }
+
   allExpenses = await res.json();
   renderStats();
   renderView();
+}
+
+function showEmptyState(containerId, message, iconName = "credit-card") {
+  document.getElementById(containerId).innerHTML = `
+    <div class="empty">
+      <div class="empty-icon">${icon(iconName, 40)}</div>
+      <h3>${esc(message)}</h3>
+    </div>`;
 }
 
 function renderStats() {
@@ -112,7 +138,12 @@ function payBadge(pt) {
 
 function renderTable(data) {
   if (!data.length) {
-    document.getElementById("expenseView").innerHTML = `<div class="empty"><div class="empty-icon">${icon("credit-card", 40)}</div><h3>No expenses found</h3><p>Try a different search or add a new expense.</p></div>`;
+    document.getElementById("expenseView").innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${icon("credit-card", 40)}</div>
+        <h3>No expenses found</h3>
+        <p>Try a different search or <a href="#" onclick="openModal('addModal');return false;" style="color:var(--green)">add a new expense</a>.</p>
+      </div>`;
     return;
   }
   document.getElementById("expenseView").innerHTML = `
@@ -128,7 +159,7 @@ function renderTable(data) {
             <td style="color:var(--text-muted)">${fmt(e.expense_date)}</td>
             <td>${payBadge(e.payment_type)}</td>
             <td class="mono debit">${inr(e.amount)}</td>
-            <td><button class="btn btn-danger btn-sm btn-icon" data-id="${esc(e.id)}" data-action="delete" title="Delete">${icon("trash-2", 14)}</button></td>
+            <td><button class="btn btn-danger btn-sm btn-icon" data-id="${esc(String(e.id))}" data-action="delete" title="Delete">${icon("trash-2", 14)}</button></td>
           </tr>
         `).join("")}
       </tbody>
@@ -139,7 +170,12 @@ function renderTable(data) {
 
 function renderGrouped(data, by) {
   if (!data.length) {
-    document.getElementById("expenseView").innerHTML = `<div class="empty"><div class="empty-icon">${icon("credit-card", 40)}</div><h3>No expenses found</h3></div>`;
+    document.getElementById("expenseView").innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${icon("credit-card", 40)}</div>
+        <h3>No expenses found</h3>
+        <p>Try a different filter or search term.</p>
+      </div>`;
     return;
   }
   const groups = {};
@@ -158,7 +194,7 @@ function renderGrouped(data, by) {
   document.getElementById("expenseView").innerHTML = `<div style="padding:16px">` + sortedKeys.map((key, idx) => {
     const items = groups[key];
     const total = items.reduce((s, e) => s + Number(e.amount || 0), 0);
-    const gid   = "grp-" + idx; // index-based id avoids any character-escaping issues
+    const gid   = "grp-" + idx;
     return `
       <div class="group-header" data-toggle="${gid}">
         <span>${esc(key)} <span style="color:var(--text-faint);font-weight:400;font-size:0.78rem">(${items.length})</span></span>
@@ -174,7 +210,7 @@ function renderGrouped(data, by) {
                 <td style="color:var(--text-muted)">${fmt(e.expense_date)}</td>
                 <td>${payBadge(e.payment_type)}</td>
                 <td class="mono debit">${inr(e.amount)}</td>
-                <td><button class="btn btn-danger btn-sm btn-icon" data-id="${esc(e.id)}" data-action="delete" title="Delete">${icon("trash-2", 14)}</button></td>
+                <td><button class="btn btn-danger btn-sm btn-icon" data-id="${esc(String(e.id))}" data-action="delete" title="Delete">${icon("trash-2", 14)}</button></td>
               </tr>
             `).join("")}
           </tbody>
@@ -262,10 +298,7 @@ async function handleAddExpense(e) {
   };
 
   try {
-    const res = await apiFetch("/expenses/add_expenses", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+    const res = await apiFetch("/expenses/add_expenses", { method: "POST", body: JSON.stringify(body) });
     if (!res) return;
     const data = await res.json();
     if (res.ok) {

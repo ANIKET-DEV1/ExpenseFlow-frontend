@@ -1,5 +1,4 @@
 // Shared validation rules used across login/register/reset pages and forms.
-// Keeping all the rules here means every page checks input the same way.
 
 export const USERNAME_RULES = [
   { test: v => v.length >= 3 && v.length <= 20, msg: "3–20 characters" },
@@ -19,15 +18,21 @@ export function validateUsername(v) {
   return USERNAME_RULES.filter(r => !r.test(v)).map(r => r.msg);
 }
 
+// Full strength check — used on register / reset pages
 export function validatePassword(v) {
   return PASSWORD_RULES.filter(r => !r.test(v)).map(r => r.msg);
+}
+
+// Lightweight check used only on the LOGIN page (just non-empty)
+export function validateLoginPassword(v) {
+  if (!v || v.length === 0) return ["Password is required"];
+  return [];
 }
 
 export function validateEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? [] : ["Enter a valid email address"];
 }
 
-// Amount must be a real number, at least 1 (per API rules), and not absurdly large.
 export function validateAmount(v) {
   const n = Number(v);
   if (v === "" || v === null || Number.isNaN(n)) return ["Enter a valid amount"];
@@ -36,20 +41,26 @@ export function validateAmount(v) {
   return [];
 }
 
-// Person name for settlements
 export function validatePersonName(v) {
   const errs = [];
-  if (v.length < 2) errs.push("Name must be at least 2 characters");
-  if (v.length > 50) errs.push("Name must be under 50 characters");
+  if (!v || v.length < 2) errs.push("Name must be at least 2 characters");
+  if (v && v.length > 50) errs.push("Name must be under 50 characters");
   return errs;
 }
 
+// Safe: msgs are always our own static strings
 export function showErr(boxId, msgs) {
   const el = document.getElementById(boxId);
   if (!el) return;
-  if (!msgs.length) { el.classList.remove("show"); el.innerHTML = ""; return; }
-  // msgs are always our own static strings, never user input, so this is safe.
-  el.innerHTML = msgs.map(m => `<span>${m}</span>`).join("<br>");
+  if (!msgs || !msgs.length) { el.classList.remove("show"); el.textContent = ""; return; }
+  // Build content safely with DOM methods
+  el.innerHTML = "";
+  msgs.forEach((m, i) => {
+    if (i > 0) el.appendChild(document.createElement("br"));
+    const span = document.createElement("span");
+    span.textContent = m;
+    el.appendChild(span);
+  });
   el.classList.add("show");
 }
 

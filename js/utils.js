@@ -1,6 +1,15 @@
 import { BASE_URL } from "./api.js";
 import { icon } from "./icons.js";
 
+// ── Inject cursor elements once ───────────────────
+(function injectCursor() {
+  if (document.getElementById("cursor-dot")) return;
+  const dot  = document.createElement("div"); dot.id  = "cursor-dot";
+  const ring = document.createElement("div"); ring.id = "cursor-ring";
+  document.body.appendChild(dot);
+  document.body.appendChild(ring);
+})();
+
 // ── Toast notifications ───────────────────────────
 let toastArea = null;
 function getArea() {
@@ -18,9 +27,11 @@ export function showToast(msg, type = "info") {
   t.className = `toast toast-${type}`;
   t.innerHTML = `
     <span class="toast-icon-wrap">${icon(iconMap[type] || "info", 16)}</span>
-    <span class="toast-msg">${esc(msg)}</span>
+    <span class="toast-msg"></span>
     <button class="toast-close" type="button" aria-label="Dismiss">${icon("x", 14)}</button>
   `;
+  // Use textContent to safely set the message
+  t.querySelector(".toast-msg").textContent = msg;
   t.querySelector(".toast-close").addEventListener("click", () => t.remove());
   getArea().appendChild(t);
   setTimeout(() => {
@@ -29,7 +40,7 @@ export function showToast(msg, type = "info") {
   }, 3500);
 }
 
-// ── XSS guard — always escape anything that came from the user or API ──
+// ── XSS guard ─────────────────────────────────────
 export function esc(str) {
   if (str == null) return "";
   return String(str)
@@ -40,7 +51,7 @@ export function esc(str) {
     .replace(/'/g, "&#39;");
 }
 
-// ── Money ─────────────────────────────────────────
+// ── Money ──────────────────────────────────────────
 export function inr(n) {
   const num = Number(n);
   return "₹" + (Number.isFinite(num) ? num : 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -54,9 +65,7 @@ export function fmt(d) {
   return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-// ── Validated fetch wrapper ────────────────────────
-// Wraps fetch so every API call: sends cookies, sets JSON headers,
-// and auto-redirects to login if the session has expired (401).
+// ── API fetch wrapper ──────────────────────────────
 export async function apiFetch(path, opts = {}) {
   let res;
   try {
@@ -77,7 +86,7 @@ export async function apiFetch(path, opts = {}) {
   return res;
 }
 
-// ── Auth guard ────────────────────────────────────
+// ── Auth guard ─────────────────────────────────────
 export async function requireAuth() {
   try {
     const res = await fetch(`${BASE_URL}/auth/me`, { credentials: "include" });
@@ -85,18 +94,18 @@ export async function requireAuth() {
     if (res.ok && d.authenticated) return d.user;
   } catch {}
   sessionStorage.setItem("flash", "Please log in to continue.");
-  window.location.href = "index.html";
+  window.location.href = "login.html";
   return null;
 }
 
-// ── Logout ────────────────────────────────────────
+// ── Logout ─────────────────────────────────────────
 export async function logout() {
   try { await apiFetch("/auth/logout", { method: "POST" }); } catch {}
   sessionStorage.removeItem("flash");
   window.location.href = "index.html";
 }
 
-// ── Active nav link ───────────────────────────────
+// ── Active nav link ────────────────────────────────
 export function setActive() {
   const page = location.pathname.split("/").pop() || "index.html";
   document.querySelectorAll("[data-nav]").forEach(el => {
@@ -104,16 +113,16 @@ export function setActive() {
   });
 }
 
-// ── Top navbar ────────────────────────────────────
+// ── Top navbar ─────────────────────────────────────
 export function renderTopnav(user) {
   const nav = document.getElementById("topnav");
   if (!nav) return;
   const init = esc(user.username[0].toUpperCase());
   nav.innerHTML = `
     <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu">${icon("menu", 20)}</button>
-      <div class="topnav-logo">
+    <div class="topnav-logo">
       <div class="licon">${icon("wallet", 18)}</div>
-      ExpenseFlow
+      ExpenseTracker
     </div>
     <div class="topnav-links">
       <a href="dashboard.html"   class="topnav-link" data-nav="dashboard.html">${icon("layout-dashboard", 15)} Dashboard</a>
@@ -152,14 +161,12 @@ export function renderTopnav(user) {
     btn.classList.remove("open");
   });
   document.getElementById("logoutBtn").addEventListener("click", logout);
-
-  // Mobile hamburger opens the sidebar drawer (sidebar may render after this, so wire it lazily)
   document.getElementById("menuBtn").addEventListener("click", () => {
     document.dispatchEvent(new CustomEvent("open-mobile-sidebar"));
   });
 }
 
-// ── Sidebar (with mobile drawer behaviour) ────────
+// ── Sidebar ────────────────────────────────────────
 export function renderSidebar() {
   const sb = document.getElementById("sidebar");
   if (!sb) return;
@@ -177,7 +184,6 @@ export function renderSidebar() {
   `;
   setActive();
 
-  // Backdrop used to close the drawer on mobile
   let backdrop = document.getElementById("sidebarBackdrop");
   if (!backdrop) {
     backdrop = document.createElement("div");
@@ -186,21 +192,15 @@ export function renderSidebar() {
     document.body.appendChild(backdrop);
   }
 
-  function openDrawer() {
-    sb.classList.add("mobile-open");
-    backdrop.classList.add("show");
-  }
-  function closeDrawer() {
-    sb.classList.remove("mobile-open");
-    backdrop.classList.remove("show");
-  }
+  function openDrawer()  { sb.classList.add("mobile-open");    backdrop.classList.add("show"); }
+  function closeDrawer() { sb.classList.remove("mobile-open"); backdrop.classList.remove("show"); }
 
   document.addEventListener("open-mobile-sidebar", openDrawer);
   backdrop.addEventListener("click", closeDrawer);
   sb.querySelectorAll("a").forEach(a => a.addEventListener("click", closeDrawer));
 }
 
-// ── Modal ─────────────────────────────────────────
+// ── Modal ──────────────────────────────────────────
 export function openModal(id) {
   document.getElementById(id)?.classList.add("open");
   document.body.style.overflow = "hidden";
@@ -217,14 +217,14 @@ export function overlayClose(id) {
   });
 }
 
-// ── Flash banner ──────────────────────────────────
+// ── Flash banner ───────────────────────────────────
 export function showFlash() {
   const flash = sessionStorage.getItem("flash");
   if (!flash) return;
   const banner = document.getElementById("flashBanner");
   const text   = document.getElementById("flashText");
   if (banner && text) {
-    text.textContent = flash; // textContent, not innerHTML — safe even if flash held odd characters
+    text.textContent = flash;
     banner.classList.add("show");
     setTimeout(() => banner.classList.remove("show"), 4000);
   }

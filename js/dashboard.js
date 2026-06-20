@@ -8,17 +8,32 @@ export async function loadDashboard() {
       apiFetch("/expenses/view_expenses"),
       apiFetch("/settlements/View_debt"),
     ]);
-    const expenses = expRes && expRes.ok ? await expRes.json() : [];
-    const debts    = debtRes && debtRes.ok ? await debtRes.json() : [];
+
+    // Always resolve to arrays — empty or not
+    const expenses = (expRes && expRes.ok) ? await expRes.json() : [];
+    const debts    = (debtRes && debtRes.ok) ? await debtRes.json() : [];
 
     renderStats(expenses, debts);
     renderRecent(expenses);
     renderTagBreakdown(expenses);
     renderDebtStats(debts);
     staggerIn(".stat-card");
-  } catch {
+  } catch (err) {
+    // Stop skeletons even on error
+    clearSkeletons();
     showToast("Could not load dashboard data.", "error");
   }
+}
+
+function clearSkeletons() {
+  const statRow = document.getElementById("statRow");
+  if (statRow) statRow.innerHTML = `<div class="empty" style="grid-column:1/-1"><p>Could not load stats.</p></div>`;
+  const recentList = document.getElementById("recentList");
+  if (recentList) recentList.innerHTML = `<div class="empty"><p>Could not load data.</p></div>`;
+  const tagBreakdown = document.getElementById("tagBreakdown");
+  if (tagBreakdown) tagBreakdown.innerHTML = `<div class="empty"><p>Could not load data.</p></div>`;
+  const debtStats = document.getElementById("debtStats");
+  if (debtStats) debtStats.innerHTML = `<div class="empty"><p>Could not load data.</p></div>`;
 }
 
 function renderStats(expenses, debts) {
@@ -68,7 +83,12 @@ function renderRecent(expenses) {
     .slice(0, 6);
 
   if (!recent.length) {
-    document.getElementById("recentList").innerHTML = `<div class="empty"><div class="empty-icon">${icon("credit-card", 36)}</div><h3>No expenses yet</h3><p><a href="expenses.html" style="color:var(--green)">Add your first expense →</a></p></div>`;
+    document.getElementById("recentList").innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${icon("credit-card", 36)}</div>
+        <h3>No expenses yet</h3>
+        <p><a href="expenses.html" style="color:var(--green)">Add your first expense →</a></p>
+      </div>`;
     return;
   }
   document.getElementById("recentList").innerHTML = recent.map(e => `
@@ -85,7 +105,12 @@ function renderRecent(expenses) {
 
 function renderTagBreakdown(expenses) {
   if (!expenses.length) {
-    document.getElementById("tagBreakdown").innerHTML = `<div class="empty"><div class="empty-icon">${icon("bar-chart", 36)}</div><h3>No data yet</h3></div>`;
+    document.getElementById("tagBreakdown").innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${icon("bar-chart", 36)}</div>
+        <h3>No data yet</h3>
+        <p>Expenses will appear here once added.</p>
+      </div>`;
     return;
   }
   const map = {};

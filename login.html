@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+
 <div class="auth-page">
   <div class="auth-card">
     <div class="auth-logo">
@@ -50,8 +53,11 @@
 </div>
 
 <script type="module">
-import { BASE_URL } from "../js/api.js";
-import { showErr, clearErr, validateUsername, validatePassword } from "../js/auth.js";
+import { BASE_URL } from "./js/api.js";
+import { showErr, clearErr, validateUsername, validateLoginPassword } from "./js/auth.js";
+import { initCursor } from "./js/animations.js";
+
+initCursor();
 
 const form = document.getElementById("loginForm");
 const btn  = document.getElementById("submitBtn");
@@ -65,18 +71,18 @@ const btn  = document.getElementById("submitBtn");
   } catch {}
 })();
 
-function validate(username, password) {
-  const errs = [...validateUsername(username), ...validatePassword(password)];
-  return errs;
-}
-
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   clearErr("errBox");
 
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value;
-  const errs = validate(username, password);
+
+  // BUG FIX: login only needs non-empty checks, not full password strength validation
+  const errs = [
+    ...(username.length < 1 ? ["Username is required"] : []),
+    ...validateLoginPassword(password),
+  ];
   if (errs.length) { showErr("errBox", errs); return; }
 
   btn.disabled = true;

@@ -33,9 +33,25 @@ export async function initSettlements() {
 }
 
 async function loadDebts() {
+  document.getElementById("debtView").innerHTML = `
+    <div style="padding:24px">
+      <div class="skel skel-row"></div>
+      <div class="skel skel-row"></div>
+      <div class="skel skel-row"></div>
+    </div>`;
+
   const res = await apiFetch("/settlements/View_debt");
-  if (!res) return;
-  if (!res.ok) { showToast("Failed to load settlements.", "error"); return; }
+
+  if (!res) {
+    document.getElementById("debtView").innerHTML = `<div class="empty"><div class="empty-icon">${icon("alert-circle",40)}</div><h3>Could not load settlements.</h3></div>`;
+    return;
+  }
+  if (!res.ok) {
+    document.getElementById("debtView").innerHTML = `<div class="empty"><div class="empty-icon">${icon("alert-circle",40)}</div><h3>Failed to load settlements.</h3></div>`;
+    showToast("Failed to load settlements.", "error");
+    return;
+  }
+
   debts = await res.json();
   renderStats();
   renderDebts();
@@ -77,7 +93,14 @@ function renderDebts() {
   if (currentTab === "paid")    data = debts.filter(d => d.debt_status === "paid");
 
   if (!data.length) {
-    document.getElementById("debtView").innerHTML = `<div class="empty"><div class="empty-icon">${icon("handshake", 40)}</div><h3>No records found</h3><p>${currentTab === "all" ? "Add your first settlement above." : "Nothing in this category."}</p></div>`;
+    const msg = currentTab === "all"
+      ? "No settlements yet. Add your first one above."
+      : `No ${currentTab} settlements found.`;
+    document.getElementById("debtView").innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${icon("handshake", 40)}</div>
+        <h3>${esc(msg)}</h3>
+      </div>`;
     return;
   }
 
@@ -108,8 +131,8 @@ function renderDebts() {
               </td>
               <td class="mono ${isBorrow ? "debit" : "credit"}">${inr(d.amount)}</td>
               <td style="display:flex;gap:6px;align-items:center">
-                <button class="btn btn-outline btn-sm" data-action="edit" data-id="${esc(d.id)}">${icon("pencil", 13)} Edit</button>
-                <button class="btn btn-danger btn-sm btn-icon" data-action="delete" data-id="${esc(d.id)}" data-name="${esc(d.person_name)}" title="Delete">${icon("trash-2", 14)}</button>
+                <button class="btn btn-outline btn-sm" data-action="edit" data-id="${esc(String(d.id))}">${icon("pencil", 13)} Edit</button>
+                <button class="btn btn-danger btn-sm btn-icon" data-action="delete" data-id="${esc(String(d.id))}" data-name="${esc(d.person_name)}" title="Delete">${icon("trash-2", 14)}</button>
               </td>
             </tr>
           `;
@@ -196,10 +219,7 @@ async function handleEditDebt(e) {
   };
 
   try {
-    const res = await apiFetch(`/settlements/update_debt/${editId}`, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
+    const res = await apiFetch(`/settlements/update_debt/${editId}`, { method: "PUT", body: JSON.stringify(body) });
     if (!res) return;
     const data = await res.json();
     if (res.ok) {
@@ -238,10 +258,7 @@ async function handleAddDebt(e) {
   };
 
   try {
-    const res = await apiFetch("/settlements/Add_debt", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+    const res = await apiFetch("/settlements/Add_debt", { method: "POST", body: JSON.stringify(body) });
     if (!res) return;
     const data = await res.json();
     if (res.ok) {
