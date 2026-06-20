@@ -3,53 +3,183 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login — ExpenseFlow</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <title>Sign In — ExpenseFlow</title>
+  <meta name="description" content="Sign in to your ExpenseFlow account to access your financial dashboard.">
   <link rel="stylesheet" href="static/style.css">
+  <style>
+    /* Split layout on desktop */
+    @media (min-width: 760px) {
+      .auth-page {
+        flex-direction: row !important;
+        padding: 0 !important;
+        align-items: stretch !important;
+        min-height: 100vh;
+      }
+      .auth-side-panel {
+        display: flex !important;
+      }
+      .auth-form-col {
+        flex: 0 0 460px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 40px;
+        overflow-y: auto;
+      }
+      .auth-card {
+        max-width: 380px;
+        width: 100%;
+        padding: 0;
+        background: none;
+        border: none;
+        box-shadow: none;
+      }
+      .auth-card::before { display: none; }
+    }
+    .auth-side-panel {
+      display: none;
+      flex: 1;
+      background: var(--surface);
+      border-right: 1px solid var(--hairline);
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-side-panel::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 600px 500px at 30% 20%, rgba(212,162,76,0.08) 0%, transparent 65%),
+        radial-gradient(ellipse 500px 400px at 80% 80%, rgba(61,220,132,0.05) 0%, transparent 60%);
+    }
+    .side-testimonial {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 22px;
+      position: relative;
+    }
+    .side-testimonial::before {
+      content: '"';
+      font-family: var(--font-display);
+      font-size: 3rem;
+      color: var(--gold);
+      opacity: 0.5;
+      position: absolute;
+      top: 8px; left: 18px;
+      line-height: 1;
+    }
+    .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .divider span { font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono); white-space: nowrap; }
+  </style>
 </head>
 <body>
 <div id="cursor-dot"></div>
 <div id="cursor-ring"></div>
 
-<div class="auth-page">
-  <div class="auth-card">
-    <div class="auth-logo">
-      <div class="licon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
-      </div>
-      ExpenseFlow
+<div class="auth-page" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+
+  <!-- Left panel (desktop only) -->
+  <div class="auth-side-panel">
+    <div style="position:relative;z-index:1">
+      <a href="index.html" style="display:inline-flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:1.1rem">
+        <div style="width:32px;height:32px;background:linear-gradient(145deg,var(--gold),#9a6e28);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--gold-ink);box-shadow:0 0 0 1px rgba(212,162,76,0.45),0 4px 16px rgba(212,162,76,0.22)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/></svg>
+        </div>
+        ExpenseFlow
+      </a>
     </div>
-    <div class="auth-title">Welcome back</div>
-    <div class="auth-sub">Log in to your account to continue</div>
 
-    <form id="loginForm" autocomplete="on" novalidate>
-      <div class="form-group" style="margin-bottom:12px">
-        <label class="form-label" for="username">Username</label>
-        <input class="form-input" id="username" name="username" type="text" placeholder="your_username" autocomplete="username" required>
-      </div>
-      <div class="form-group" style="margin-bottom:4px">
-        <label class="form-label" for="password">Password</label>
-        <input class="form-input" id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required>
-      </div>
-      <div style="text-align:right;margin-top:6px">
-        <a href="forgot-password.html" style="font-size:0.78rem;color:var(--green)">Forgot password?</a>
+    <div style="position:relative;z-index:1">
+      <div style="margin-bottom:40px">
+        <div style="font-family:var(--font-mono);font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--gold);margin-bottom:14px">Why ExpenseFlow?</div>
+        <h2 style="font-family:var(--font-display);font-size:1.9rem;font-weight:700;letter-spacing:-0.02em;line-height:1.15;margin-bottom:14px">Track every rupee.<br><span style="color:var(--gold)">Own your finances.</span></h2>
+        <p style="font-size:0.88rem;color:var(--text-muted);line-height:1.7">A premium expense tracker with custom tags, peer settlements, and a dashboard that makes your financial life clear at a glance.</p>
       </div>
 
-      <div id="errBox" class="err-box">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-        <span id="errText"></span>
+      <!-- Mini feature list -->
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:40px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:28px;height:28px;border-radius:8px;background:var(--green-dim);border:1px solid rgba(61,220,132,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <span style="font-size:0.84rem;color:var(--text-muted)">Log expenses in seconds</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:28px;height:28px;border-radius:8px;background:var(--green-dim);border:1px solid rgba(61,220,132,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <span style="font-size:0.84rem;color:var(--text-muted)">Track who owes you what</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:28px;height:28px;border-radius:8px;background:var(--green-dim);border:1px solid rgba(61,220,132,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <span style="font-size:0.84rem;color:var(--text-muted)">Secure sessions, zero data leaks</span>
+        </div>
       </div>
 
-      <button class="btn btn-primary" style="width:100%;margin-top:18px;justify-content:center" type="submit" id="submitBtn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
-        Log in
-      </button>
-    </form>
-
-    <div class="auth-foot">
-      No account? <a href="register.html">Register here</a>
+      <!-- Testimonial card -->
+      <div class="side-testimonial">
+        <p style="font-size:0.86rem;color:var(--text-muted);line-height:1.7;padding-top:16px;padding-left:10px">Finally a finance tracker that doesn't look like a spreadsheet. Clean, fast, and actually useful.</p>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:16px">
+          <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(145deg,var(--gold),#9a6e28);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:0.75rem;color:var(--gold-ink)">R</div>
+          <div>
+            <div style="font-size:0.82rem;font-weight:700">Rohit S.</div>
+            <div style="font-size:0.72rem;color:var(--text-faint)">Freelance developer</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+
+  <!-- Right / Form column -->
+  <div class="auth-form-col" style="width:100%">
+    <div class="auth-card">
+
+      <div class="auth-logo">
+        <div class="licon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/></svg>
+        </div>
+        ExpenseFlow
+      </div>
+      <div class="auth-title">Welcome back</div>
+      <div class="auth-sub">Sign in to continue to your dashboard</div>
+
+      <form id="loginForm" autocomplete="on" novalidate>
+        <div class="form-group" style="margin-bottom:14px">
+          <label class="form-label" for="username">Username</label>
+          <input class="form-input" id="username" name="username" type="text" placeholder="your_username" autocomplete="username" required>
+        </div>
+        <div class="form-group" style="margin-bottom:6px">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-input" id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+        <div style="text-align:right;margin-top:8px;margin-bottom:4px">
+          <a href="forgot-password.html" style="font-size:0.79rem;color:var(--gold);font-weight:500">Forgot password?</a>
+        </div>
+
+        <div id="errBox" class="err-box">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          <span id="errText"></span>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;margin-top:20px;justify-content:center;padding:12px;font-family:var(--font-mono);font-size:0.8rem;letter-spacing:0.04em;text-transform:uppercase" type="submit" id="submitBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+          Sign In
+        </button>
+      </form>
+
+      <div class="auth-foot">
+        Don't have an account? <a href="register.html">Create one free</a>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script type="module">
@@ -78,7 +208,6 @@ form.addEventListener("submit", async (e) => {
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value;
 
-  // BUG FIX: login only needs non-empty checks, not full password strength validation
   const errs = [
     ...(username.length < 1 ? ["Username is required"] : []),
     ...validateLoginPassword(password),
@@ -86,7 +215,7 @@ form.addEventListener("submit", async (e) => {
   if (errs.length) { showErr("errBox", errs); return; }
 
   btn.disabled = true;
-  btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Logging in…`;
+  btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Signing in…`;
 
   try {
     const res = await fetch(`${BASE_URL}/auth/login`, {
@@ -105,7 +234,7 @@ form.addEventListener("submit", async (e) => {
     showErr("errBox", ["Could not reach the server. Check your connection."]);
   } finally {
     btn.disabled = false;
-    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg> Log in`;
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg> Sign In`;
   }
 });
 </script>

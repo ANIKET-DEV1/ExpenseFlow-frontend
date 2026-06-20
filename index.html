@@ -3,159 +3,194 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ExpenseFlow — Track every rupee</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <title>ExpenseFlow — Track Every Rupee</title>
+  <meta name="description" content="A premium personal finance tracker. Log expenses, manage settlements, and organise spending by custom tags — all with a beautiful dark interface.">
   <link rel="stylesheet" href="static/style.css">
   <style>
+    /* Two-column hero responsive */
     @media (min-width: 861px) {
       .hero {
+        flex-direction: row !important;
+        text-align: left !important;
+        padding: 130px 60px 80px !important;
         max-width: 1120px !important;
         margin: 0 auto !important;
-        flex-direction: row !important;
+        gap: 64px !important;
         align-items: center !important;
-        justify-content: space-between !important;
-        gap: 60px !important;
-        text-align: left !important;
-        padding: 120px 24px 60px !important;
       }
-      .hero-left { flex: 1.1; max-width: 580px; }
+      .hero-left  { flex: 1.1; max-width: 580px; }
       .hero-right { flex: 0.9; display: flex; justify-content: flex-end; }
+      .hero-eyebrow { margin-left: 0 !important; }
+      .hero-cta   { justify-content: flex-start !important; }
+      .hero-stats { justify-content: flex-start !important; margin-top: 56px; }
+      .hero h1    { max-width: none; }
+      .hero-sub   { max-width: none; }
     }
     @media (max-width: 860px) {
-      .hero {
-        flex-direction: column !important;
-        text-align: center !important;
-        padding: 100px 20px 40px !important;
-      }
-      .hero-left { margin-bottom: 40px; }
-      .hero-left .hero-eyebrow { margin-left: auto; margin-right: auto; }
-      .hero-left .hero-cta { justify-content: center !important; }
+      .hero { min-height: auto; padding-top: 100px !important; }
       .hero-right { width: 100%; display: flex; justify-content: center; }
+      .hero-left  { margin-bottom: 48px; }
     }
+    /* Floating badge animation */
+    @keyframes float-badge { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+    .float-badge { animation: float-badge 3s ease-in-out infinite; }
+    /* Divider gradient line */
+    .section-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(212,162,76,0.2), transparent); margin: 0 60px; }
+    /* Number counter highlight */
+    .num-gold { color: var(--gold); }
   </style>
 </head>
 <body>
 <div id="cursor-dot"></div>
 <div id="cursor-ring"></div>
 
-<nav class="land-nav" style="display:flex;align-items:center;justify-content:space-between;padding:0 30px">
-  <!-- Coins Logo -->
-  <div class="land-nav-logo" style="display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-weight:700;font-size:1.15rem;color:var(--text)">
-    <div class="licon" style="width:30px;height:30px;background:linear-gradient(155deg,var(--gold) 0%,#b3823a 100%);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px var(--gold-glow);color:var(--gold-ink)">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/></svg>
+<!-- ─── NAV ─────────────────────────────────────── -->
+<nav class="land-nav" id="landNav">
+  <div class="land-nav-logo">
+    <div class="licon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>
     </div>
-    Expense Flow
+    ExpenseFlow
   </div>
 
-  <!-- Center navigation links -->
-  <div class="land-nav-menu" style="display:flex;gap:24px;font-family:var(--font-mono);font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted)">
-    <a href="#features" style="transition:color var(--t)" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-muted)'">Core Features</a>
-    <a href="#security" style="transition:color var(--t)" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-muted)'">Security & Tech</a>
-    <a href="#faq" style="transition:color var(--t)" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-muted)'">Metrics</a>
+  <div class="land-nav-menu">
+    <a href="#features">Features</a>
+    <a href="#security">Security</a>
+    <a href="#faq">FAQ</a>
   </div>
 
-  <div class="land-nav-links" id="guestNav" style="display:flex;align-items:center;gap:18px;margin-left:0">
-    <button id="themeToggle" type="button" style="color:var(--text-muted);display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;cursor:pointer">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-    </button>
-    <a href="login.html" style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);transition:color var(--t)" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-muted)'">Sign In</a>
-    <a href="register.html" class="primary" style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:8px 18px;border-radius:var(--r-sm);background:linear-gradient(155deg, var(--gold) 0%, #c08f3f 100%);color:var(--gold-ink);box-shadow:0 0 12px var(--gold-glow);transition:opacity var(--t)">Get Started</a>
+  <div class="land-nav-links" id="guestNav">
+    <a href="login.html">Sign In</a>
+    <a href="register.html" class="primary">Get Started</a>
   </div>
-  
-  <div class="land-nav-links" id="userNav" style="display:none;align-items:center;gap:16px;margin-left:0">
-    <a href="dashboard.html" class="primary" style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:8px 18px;border-radius:var(--r-sm);background:linear-gradient(155deg, var(--gold) 0%, #c08f3f 100%);color:var(--gold-ink);box-shadow:0 0 12px var(--gold-glow);transition:opacity var(--t)">Go to Dashboard</a>
+  <div class="land-nav-links" id="userNav" style="display:none">
+    <a href="dashboard.html" class="primary">Go to Dashboard</a>
   </div>
 </nav>
 
-<!-- Hero -->
-<section class="hero">
-  <!-- Left Side: Copy & CTA -->
+<!-- ─── HERO ──────────────────────────────────────── -->
+<section class="hero" style="display:flex;flex-direction:column;align-items:center">
+
+  <!-- Left / Copy -->
   <div class="hero-left">
-    <div class="hero-eyebrow" style="font-family:var(--font-mono);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(212,162,76,0.15);padding:4px 12px;border-radius:24px;width:fit-content;margin-bottom:18px;display:flex;align-items:center;gap:6px">
-      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
+    <div class="hero-eyebrow" style="margin-left:auto;margin-right:auto">
+      <span class="dot"></span>
       Stateless Finance Architecture
     </div>
-    <h1 style="font-family:var(--font-display);font-size:clamp(2rem, 5vw, 3.4rem);font-weight:700;line-height:1.1;letter-spacing:-0.03em;color:var(--text);margin-bottom:20px">
-      Take Back Control of Your <span style="color:var(--gold)">Expense Flow</span>
-    </h1>
-    <p class="hero-sub" style="font-size:0.95rem;color:var(--text-muted);line-height:1.7;margin-bottom:32px;max-width:480px">
-      A premium Single Page Application showcasing pristine glassmorphic aesthetics, absolute client cookie isolation, custom categories tagging, and instant peer settlements tracking.
+    <h1>Take Back Control of Your <em>Expense Flow</em></h1>
+    <p class="hero-sub">
+      A premium personal finance tracker built for clarity. Log expenses, settle debts, and organise spending by custom tags — beautifully.
     </p>
-    <div class="hero-cta" style="display:flex;gap:12px;justify-content:flex-start">
-      <a href="register.html" class="btn btn-primary" style="font-family:var(--font-mono);font-size:0.78rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:12px 24px;border-radius:var(--r-sm);display:flex;align-items:center;gap:6px">
+    <div class="hero-cta">
+      <a href="register.html" class="btn btn-primary" style="font-family:var(--font-mono);font-size:0.78rem;letter-spacing:0.05em;text-transform:uppercase;padding:13px 28px">
         Establish Stream
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" x2="19" y1="12" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" x2="19" y1="12" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </a>
-      <a href="#features" class="btn btn-ghost" style="font-family:var(--font-mono);font-size:0.78rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:12px 24px;border-radius:var(--r-sm)">
-        Explore Features
-      </a>
+      <a href="#features" class="btn btn-ghost" style="font-family:var(--font-mono);font-size:0.78rem;letter-spacing:0.05em;text-transform:uppercase;padding:13px 24px">Explore Features</a>
+    </div>
+
+    <!-- Stats row -->
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-val">100<span>%</span></div>
+        <div class="hero-stat-lbl">Private &amp; Secure</div>
+      </div>
+      <div class="hero-stat-divider"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">∞<span> Tags</span></div>
+        <div class="hero-stat-lbl">Custom Categories</div>
+      </div>
+      <div class="hero-stat-divider"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">0<span>ms</span></div>
+        <div class="hero-stat-lbl">Load Latency</div>
+      </div>
     </div>
   </div>
 
-  <!-- Right Side: Mock secure gateway UI mockup -->
+  <!-- Right / Mock UI card -->
   <div class="hero-right reveal">
-    <div style="background:#11151d;border:1px solid var(--border);border-radius:14px;width:100%;max-width:420px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,0.55);position:relative">
-      <!-- Window controls -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <div class="hero-card" style="width:100%;max-width:420px;position:relative">
+      <!-- Window chrome -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
         <div style="display:flex;gap:6px">
-          <span style="width:10px;height:10px;border-radius:50%;background:#ff5c5c"></span>
-          <span style="width:10px;height:10px;border-radius:50%;background:#ffbd2e"></span>
-          <span style="width:10px;height:10px;border-radius:50%;background:#27c93f"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#ff5c5c;opacity:0.8"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#ffbd2e;opacity:0.8"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#27c93f;opacity:0.8"></span>
         </div>
-        <div style="font-family:var(--font-mono);font-size:0.6rem;letter-spacing:0.08em;color:var(--text-faint);text-transform:uppercase">Secure Connection Gateway</div>
+        <div style="font-family:var(--font-mono);font-size:0.58rem;letter-spacing:0.1em;color:var(--text-faint);text-transform:uppercase">Secure Gateway</div>
       </div>
-      <!-- Stats grid inside window -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-        <div style="background:rgba(61,220,132,0.06);border:1px solid rgba(61,220,132,0.15);border-radius:8px;padding:12px">
-          <div style="font-size:0.6rem;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px">Income Recv</div>
-          <div style="font-family:var(--font-mono);font-size:1.15rem;font-weight:600;color:var(--green)">$3,420.00</div>
+
+      <!-- KPI grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="background:rgba(61,220,132,0.06);border:1px solid rgba(61,220,132,0.14);border-radius:9px;padding:14px">
+          <div style="font-size:0.58rem;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px">Income</div>
+          <div style="font-family:var(--font-mono);font-size:1.18rem;font-weight:700;color:var(--green)">₹34,200</div>
         </div>
-        <div style="background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.15);border-radius:8px;padding:12px">
-          <div style="font-size:0.6rem;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px">Loss Debited</div>
-          <div style="font-family:var(--font-mono);font-size:1.15rem;font-weight:600;color:var(--red)">$1,845.50</div>
+        <div style="background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.14);border-radius:9px;padding:14px">
+          <div style="font-size:0.58rem;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px">Expenses</div>
+          <div style="font-family:var(--font-mono);font-size:1.18rem;font-weight:700;color:var(--red)">₹18,455</div>
         </div>
       </div>
-      <!-- List items inside window -->
-      <div style="display:flex;flex-direction:column;gap:12px">
+
+      <!-- Progress bars -->
+      <div style="display:flex;flex-direction:column;gap:14px">
         <div>
-          <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:4px">
-            <span style="display:flex;align-items:center;gap:6px;color:var(--text-muted)">
+          <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:6px">
+            <span style="display:flex;align-items:center;gap:7px;color:var(--text-muted)">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
               SaaS Subscription
             </span>
-            <span class="mono" style="font-weight:600;color:var(--text)">$89.00</span>
+            <span style="font-family:var(--font-mono);font-weight:600;color:var(--text)">₹8,900</span>
           </div>
           <div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden">
-            <div style="height:100%;width:62%;background:var(--gold)"></div>
+            <div style="height:100%;width:62%;background:linear-gradient(90deg,var(--gold),rgba(212,162,76,0.4))"></div>
           </div>
         </div>
         <div>
-          <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:4px">
-            <span style="display:flex;align-items:center;gap:6px;color:var(--text-muted)">
+          <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:6px">
+            <span style="display:flex;align-items:center;gap:7px;color:var(--text-muted)">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
-              Fine Dining
+              Cloud Infrastructure
             </span>
-            <span class="mono" style="font-weight:600;color:var(--text)">$124.50</span>
+            <span style="font-family:var(--font-mono);font-weight:600;color:var(--text)">₹12,450</span>
           </div>
           <div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden">
-            <div style="height:100%;width:80%;background:var(--gold)"></div>
+            <div style="height:100%;width:80%;background:linear-gradient(90deg,var(--gold),rgba(212,162,76,0.4))"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:6px">
+            <span style="display:flex;align-items:center;gap:7px;color:var(--text-muted)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+              Settlement Pending
+            </span>
+            <span style="font-family:var(--font-mono);font-weight:600;color:var(--green)">₹3,200</span>
+          </div>
+          <div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:38%;background:linear-gradient(90deg,var(--green),rgba(61,220,132,0.3))"></div>
           </div>
         </div>
       </div>
-      <!-- Floating Badge -->
-      <div style="position:absolute;bottom:-12px;left:-20px;background:rgba(17,21,29,0.85);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:20px;padding:6px 14px;display:flex;align-items:center;gap:6px;box-shadow:0 8px 24px rgba(0,0,0,0.35)">
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-        <span style="font-family:var(--font-mono);font-size:0.68rem;font-weight:700;color:var(--text)">+14.2% Efficiency</span>
+
+      <!-- Floating badge -->
+      <div class="float-badge" style="position:absolute;bottom:-14px;left:-18px;background:rgba(15,20,32,0.92);backdrop-filter:blur(12px);border:1px solid rgba(212,162,76,0.25);border-radius:20px;padding:7px 16px;display:flex;align-items:center;gap:7px;box-shadow:0 8px 30px rgba(0,0,0,0.4)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        <span style="font-family:var(--font-mono);font-size:0.68rem;font-weight:700;color:var(--text)">+14.2% efficiency</span>
       </div>
     </div>
   </div>
+
 </section>
 
-<!-- Features -->
-<section class="features">
+<div class="section-divider"></div>
+
+<!-- ─── FEATURES ──────────────────────────────────── -->
+<section class="features" id="features">
   <div class="features-head">
-    <h2>Everything you need, nothing you don't</h2>
-    <p>Simple tools that give you real clarity on your spending.</p>
+    <div class="eyebrow">Core Features</div>
+    <h2>Everything you need,<br>nothing you don't</h2>
+    <p>Simple, powerful tools that give you real clarity on where your money goes.</p>
   </div>
   <div class="feat-grid">
     <div class="feat-card reveal">
@@ -177,35 +212,67 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>
       </div>
       <h3>Settlements</h3>
-      <p>Track who owes you and who you owe. Mark debts paid when done.</p>
+      <p>Track who owes you and who you owe. Mark debts paid instantly when settled.</p>
     </div>
     <div class="feat-card reveal">
       <div class="feat-icon-wrap">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
       </div>
       <h3>Smart Views</h3>
-      <p>See spending grouped by tag or month. Spot patterns instantly.</p>
+      <p>See spending grouped by tag or month. Spot patterns and outliers at a glance.</p>
     </div>
     <div class="feat-card reveal">
       <div class="feat-icon-wrap">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
-      <h3>Private by default</h3>
-      <p>Your data stays yours. Secure session cookies, no third-party trackers.</p>
+      <h3>Private by Default</h3>
+      <p>Your data stays yours. Secure HTTP-only session cookies, zero third-party trackers.</p>
     </div>
     <div class="feat-card reveal">
       <div class="feat-icon-wrap">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
       </div>
-      <h3>Works everywhere</h3>
-      <p>Fully responsive. Use it on your phone, tablet, or desktop.</p>
+      <h3>Works Everywhere</h3>
+      <p>Fully responsive. Use it on your phone, tablet, or desktop with the same great experience.</p>
     </div>
   </div>
 </section>
 
-<!-- FAQ -->
-<section class="faq-section">
+<div class="section-divider"></div>
+
+<!-- ─── SECURITY SECTION ──────────────────────────── -->
+<section id="security" style="max-width:1060px;margin:0 auto;padding:80px 24px">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--hairline);border:1px solid var(--hairline);border-radius:var(--r);overflow:hidden">
+    <div style="background:var(--surface);padding:30px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-family:var(--font-mono);font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--gold)">Security</div>
+      <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700">HTTP-only Cookies</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.65">Session tokens are stored in server-side HTTP-only cookies — invisible to JavaScript and third-party scripts.</div>
+    </div>
+    <div style="background:var(--surface);padding:30px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-family:var(--font-mono);font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--gold)">Privacy</div>
+      <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700">No Third-party Tracking</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.65">Zero analytics scripts, no ad pixels. Your financial activity is completely private and never sold.</div>
+    </div>
+    <div style="background:var(--surface);padding:30px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-family:var(--font-mono);font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--gold)">Auth</div>
+      <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700">CORS-secured API</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.65">Backend enforces strict CORS origin rules. Only your authenticated browser session can access your data.</div>
+    </div>
+    <div style="background:var(--surface);padding:30px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-family:var(--font-mono);font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--gold)">Reliability</div>
+      <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700">Server-persisted Data</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.65">Your expenses are stored securely on the server — no data loss from clearing browser cache or switching devices.</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ─── FAQ ───────────────────────────────────────── -->
+<section class="faq-section" id="faq">
   <h2>Frequently asked questions</h2>
+  <p class="faq-sub">Everything you need to know before you start.</p>
+
   <div class="faq-item reveal">
     <div class="faq-q" onclick="toggleFaq(this)">Is my financial data secure?<span class="arrow"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
     <div class="faq-a">Yes. Your data is stored on a private server and accessible only through your authenticated session. We use secure HTTP-only cookies so your session token is never exposed to JavaScript or third-party scripts.</div>
@@ -216,11 +283,11 @@
   </div>
   <div class="faq-item reveal">
     <div class="faq-q" onclick="toggleFaq(this)">What are tags, and do I need them?<span class="arrow"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
-    <div class="faq-a">Tags are categories you create yourself — like "Groceries", "Rent", or "Petrol". Every expense needs one tag. You can create unlimited tags for free.</div>
+    <div class="faq-a">Tags are categories you create yourself — like "Groceries", "Rent", or "Petrol". Every expense needs one tag. You can create unlimited tags for free in the Tags section.</div>
   </div>
   <div class="faq-item reveal">
     <div class="faq-q" onclick="toggleFaq(this)">Can I track money I owe or money owed to me?<span class="arrow"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
-    <div class="faq-a">Yes — that's what Settlements are for. Add a record with the person's name, amount, and direction. Mark it paid when done. You can edit amounts and status anytime.</div>
+    <div class="faq-a">Yes — that's what Settlements are for. Add a record with the person's name, amount, and direction. Mark it paid when done. You can edit amounts and statuses anytime.</div>
   </div>
   <div class="faq-item reveal">
     <div class="faq-q" onclick="toggleFaq(this)">Can I see my spending month by month?<span class="arrow"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
@@ -232,8 +299,18 @@
   </div>
 </section>
 
-<footer style="text-align:center;padding:30px;font-size:0.8rem;color:var(--text-faint);border-top:1px solid var(--border)">
-  © 2026 ExpenseFlow — Your money, your data.
+<!-- ─── FOOTER ─────────────────────────────────────── -->
+<footer style="border-top:1px solid var(--hairline);padding:36px 44px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="width:26px;height:26px;background:linear-gradient(145deg,var(--gold),#9a6e28);border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--gold-ink)">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/></svg>
+    </div>
+    <span style="font-family:var(--font-display);font-size:0.9rem;font-weight:700">ExpenseFlow</span>
+  </div>
+  <div style="font-size:0.78rem;color:var(--text-faint)">© 2026 ExpenseFlow — Your money, your data.</div>
+  <div style="font-size:0.78rem;color:var(--text-faint)">
+    Crafted by <a href="https://awsmx.vercel.app/" target="_blank" rel="noopener noreferrer" style="color:var(--gold);font-weight:600;transition:color var(--t)" onmouseover="this.style.color='#e8b966'" onmouseout="this.style.color='var(--gold)'">AWSMX</a>
+  </div>
 </footer>
 
 <script type="module">
@@ -242,6 +319,13 @@ import { initScrollReveal, initCursor } from "./js/animations.js";
 
 initCursor();
 
+// Navbar scroll tint
+const nav = document.getElementById("landNav");
+window.addEventListener("scroll", () => {
+  nav.classList.toggle("scrolled", window.scrollY > 40);
+}, { passive: true });
+
+// Auth check — swap nav buttons if already logged in
 (async () => {
   try {
     const res = await fetch(`${BASE_URL}/auth/me`, { credentials: "include" });
@@ -253,17 +337,6 @@ initCursor();
   } catch {}
 })();
 
-const toggleBtn = document.getElementById("themeToggle");
-if (toggleBtn) {
-  toggleBtn.addEventListener("click", () => {
-    const isDark = document.body.style.filter === "";
-    document.body.style.filter = isDark ? "invert(0.92) hue-rotate(180deg)" : "";
-    toggleBtn.innerHTML = isDark
-      ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`
-      : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`;
-  });
-}
-
 function toggleFaq(el) {
   const ans    = el.nextElementSibling;
   const isOpen = ans.classList.contains("open");
@@ -274,7 +347,7 @@ function toggleFaq(el) {
   if (!isOpen) { ans.classList.add("open"); el.classList.add("open"); }
 }
 window.toggleFaq = toggleFaq;
-initScrollReveal(".feat-card, .faq-item");
+initScrollReveal(".feat-card, .faq-item, .reveal");
 </script>
 </body>
 </html>
