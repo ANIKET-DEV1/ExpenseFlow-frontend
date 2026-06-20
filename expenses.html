@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Expenses — ExpenseFlow</title>
+  <title>Expenses — ExpenseTracker</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
-<nav class="topnav" id="global-navbar"></nav> 
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+
+<nav class="topnav" id="topnav"></nav>
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="shell">
   <aside class="sidebar" id="sidebar"></aside>
@@ -133,14 +136,13 @@
 </div>
 
 <script type="module">
-import { fetchUser } from "./js/api.js";
-import { renderNavbar, renderSidebar } from "./js/utils.js";
+import { requireAuth, renderTopnav, renderSidebar } from "./js/utils.js";
 import { initExpenses } from "./js/expenses.js";
 
-const user = await fetchUser();
+const user = await requireAuth();
 if (!user) throw new Error("not authed");
-renderNavbar(user);
-renderSidebar();
+renderTopnav(user);
+renderSidebar(user);
 initExpenses();
 </script>
 </body>

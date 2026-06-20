@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+
 <div class="auth-page">
   <div class="auth-card" style="text-align:center">
     <div class="auth-logo" style="justify-content:center;margin-bottom:32px">
@@ -17,13 +20,11 @@
       ExpenseFlow
     </div>
 
-    <!-- Loading state -->
     <div id="stateLoading">
       <div style="color:var(--text-muted);font-size:0.9rem;margin-bottom:8px">Verifying your email…</div>
       <div class="skel" style="height:4px;width:100%;border-radius:2px;margin-top:16px"></div>
     </div>
 
-    <!-- Success state -->
     <div id="stateSuccess" style="display:none">
       <div style="width:56px;height:56px;border-radius:50%;background:var(--green-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:var(--green)">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -33,7 +34,6 @@
       <a href="login.html" class="btn btn-primary" style="justify-content:center;display:inline-flex">Go to login</a>
     </div>
 
-    <!-- Error state -->
     <div id="stateError" style="display:none">
       <div style="width:56px;height:56px;border-radius:50%;background:var(--red-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:var(--red)">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>
@@ -47,6 +47,9 @@
 
 <script type="module">
 import { BASE_URL } from "./js/api.js";
+import { initCursor } from "./js/animations.js";
+
+initCursor();
 
 const token = new URLSearchParams(window.location.search).get("token");
 

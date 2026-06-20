@@ -1,101 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tags — ExpenseFlow</title>
+  <title>Tags — ExpenseTracker</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="static/style.css">
 </head>
+
 <body>
-  
-<nav class="topnav" id="global-navbar"></nav> 
-<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <div id="cursor-dot"></div>
+  <div id="cursor-ring"></div>
 
-<div class="shell">
-  <aside class="sidebar" id="sidebar"></aside>
-  <main class="main">
-    <div class="page">
+  <nav class="topnav" id="topnav"></nav>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-      <div class="page-head">
-        <div>
-          <div class="page-title">Tags</div>
-          <div class="page-sub">Organise your expenses with custom tags</div>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+      <div class="page">
+
+        <div class="page-head">
+          <div>
+            <div class="page-title">Tags Manager</div>
+            <div class="page-sub">Organise your expenses with custom tags</div>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('addTagModal')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
+            New Tag
+          </button>
         </div>
-        <button class="btn btn-primary" onclick="openModal('addTagModal')">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-          New Tag
+
+        <div class="card">
+          <div id="tagList">
+            <div class="skel" style="height:36px;width:120px;display:inline-block;margin:6px"></div>
+            <div class="skel" style="height:36px;width:90px;display:inline-block;margin:6px"></div>
+            <div class="skel" style="height:36px;width:140px;display:inline-block;margin:6px"></div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Tag Modal -->
+  <div class="overlay" id="addTagModal">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-head">
+        <div class="modal-title">New Tag</div>
+        <button class="modal-close" onclick="closeModal('addTagModal')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </button>
       </div>
-
-      <div class="card">
-        <div id="tagList">
-          <div class="skel" style="height:36px;width:120px;display:inline-block;margin:6px"></div>
-          <div class="skel" style="height:36px;width:90px;display:inline-block;margin:6px"></div>
-          <div class="skel" style="height:36px;width:140px;display:inline-block;margin:6px"></div>
+      <form id="addTagForm">
+        <div class="form-group">
+          <label class="form-label">Tag Name</label>
+          <input class="form-input" id="tagNameInp" type="text" placeholder="e.g. groceries, food, petrol" minlength="2"
+            maxlength="30" required>
+          <span class="form-label"
+            style="font-size:0.72rem;color:var(--text-faint);text-transform:none;font-weight:400">2–30 chars. Letters,
+            numbers, spaces and hyphens. Saved as lowercase.</span>
         </div>
-      </div>
-
+        <div class="modal-foot">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('addTagModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="addTagBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
+            Create Tag
+          </button>
+        </div>
+      </form>
     </div>
-  </main>
-</div>
+  </div>
 
-<!-- Add Tag Modal -->
-<div class="overlay" id="addTagModal">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-head">
-      <div class="modal-title">New Tag</div>
-      <button class="modal-close" onclick="closeModal('addTagModal')">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-      </button>
-    </div>
-    <form id="addTagForm">
-      <div class="form-group">
-        <label class="form-label">Tag Name</label>
-        <input class="form-input" id="tagNameInp" type="text" placeholder="e.g. groceries, rent, petrol" minlength="2" maxlength="20" required>
-        <span class="form-label" style="font-size:0.72rem;color:var(--text-faint);text-transform:none;font-weight:400">2–20 letters only. Saved as lowercase.</span>
+  <!-- Confirm Delete Modal -->
+  <div class="overlay" id="delTagModal">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-head">
+        <div class="modal-title">Delete tag?</div>
+        <button class="modal-close" onclick="closeModal('delTagModal')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
       </div>
+      <p class="confirm-text">Delete tag <strong class="confirm-name" id="delTagName"></strong>? Expenses using this tag
+        may be affected.</p>
       <div class="modal-foot">
-        <button type="button" class="btn btn-ghost" onclick="closeModal('addTagModal')">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="addTagBtn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-          Create Tag
+        <button class="btn btn-ghost" onclick="closeModal('delTagModal')">Cancel</button>
+        <button class="btn btn-danger" id="confirmTagDelBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18" />
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+          </svg>
+          Delete
         </button>
       </div>
-    </form>
-  </div>
-</div>
-
-<!-- Confirm Delete Modal -->
-<div class="overlay" id="delTagModal">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-head">
-      <div class="modal-title">Delete tag?</div>
-      <button class="modal-close" onclick="closeModal('delTagModal')">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-      </button>
-    </div>
-    <p class="confirm-text">Delete tag <strong class="confirm-name" id="delTagName"></strong>? Expenses using this tag may be affected.</p>
-    <div class="modal-foot">
-      <button class="btn btn-ghost" onclick="closeModal('delTagModal')">Cancel</button>
-      <button class="btn btn-danger" id="confirmTagDelBtn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-        Delete
-      </button>
     </div>
   </div>
-</div>
 
-<script type="module">
-import { fetchUser } from "./js/api.js";
-import { renderNavbar, renderSidebar } from "./js/utils.js";
-import { initTags } from "./js/tags.js";
+  <script type="module">
+    import { requireAuth, renderTopnav, renderSidebar } from "./js/utils.js";
+    import { initTags } from "./js/tags.js";
 
-const user = await fetchUser();
-if (!user) throw new Error("not authed");
-renderNavbar(user);
-renderSidebar();
-initTags();
-</script>
+    const user = await requireAuth();
+    if (!user) throw new Error("not authed");
+    renderTopnav(user);
+    renderSidebar();
+    initTags();
+  </script>
 </body>
+
 </html>

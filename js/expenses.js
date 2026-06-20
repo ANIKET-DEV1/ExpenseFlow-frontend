@@ -1,249 +1,335 @@
-// js/expenses.js
-import { api } from "./api.js";
-import { showToast, formatCurrency, formatDate, escapeHtml, closeModal } from "./utils.js";
-import { countUp } from "./animations.js";
+import { apiFetch, showToast, esc, inr, fmt, openModal, closeModal, overlayClose } from "./utils.js";
+import { validateAmount } from "./auth.js";
+import { icon } from "./icons.js";
+import { initPageAnimations } from "./animations.js";
 
 let allExpenses = [];
-let allTags = [];
-let currentTab = "all";
-let pendingDeleteId = null;
+let allTags     = [];
+let currentTab  = "all";
+let deleteId    = null;
 
 export async function initExpenses() {
-  bindStaticEvents();
-  await Promise.all([loadTags(), loadExpenses()]);
-  loadStats();
-}
+  overlayClose("addModal");
+  overlayClose("delModal");
 
-function bindStaticEvents() {
-  document.getElementById("addForm")?.addEventListener("submit", handleAddSubmit);
-  document.getElementById("confirmDelBtn")?.addEventListener("click", handleConfirmDelete);
+  document.getElementById("addDate").value = new Date().toISOString().split("T")[0];
+  document.getElementById("addAmount").setAttribute("min", "1");
 
-  // Default the add-expense date field to today.
-  const dateInput = document.getElementById("addDate");
-  if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
+  document.getElementById("addForm").addEventListener("submit", handleAddExpense);
+  document.getElementById("confirmDelBtn").addEventListener("click", handleDeleteExpense);
+
+  window.openModal      = openModal;
+  window.closeModal     = closeModal;
+  window.switchTab      = switchTab;
+  window.applyFilter    = applyFilter;
+  window.confirmDelete  = confirmDelete;
+  window.toggleGroup    = toggleGroup;
+
+  await loadTags();
+  await loadExpenses();
+  initPageAnimations();
 }
 
 async function loadTags() {
-  try {
-    allTags = await api.get("/tags");
-    const select = document.getElementById("addTag");
-    if (select) {
-      select.innerHTML = allTags.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join("");
-    }
-  } catch {
-    allTags = [];
-  }
+  const res = await apiFetch("/tags/view_tags");
+  if (!res || !res.ok) return;
+  allTags = await res.json();
+  const sel = document.getElementById("addTag");
+  sel.innerHTML = allTags.length
+    ? allTags.map(t => `<option value="${esc(t.tag_name)}">${esc(t.tag_name)}</option>`).join("")
+    : `<option disabled>No tags yet — add one in Tags page</option>`;
 }
 
 async function loadExpenses() {
-  const view = document.getElementById("expenseView");
-  if (!view) return;
-  view.innerHTML = `<div style="padding:24px"><div class="skel skel-row"></div><div class="skel skel-row"></div><div class="skel skel-row"></div></div>`;
-  try {
-    allExpenses = await api.get("/expenses?sort=-date");
-    if (!Array.isArray(allExpenses)) allExpenses = allExpenses.items || [];
-    renderCurrentView();
-  } catch (err) {
-    view.innerHTML = `<div class="empty"><h3>Couldn't load expenses</h3><p>${escapeHtml(err.message)}</p></div>`;
+  // Show skeleton while loading
+  document.getElementById("expenseView").innerHTML = `
+    <div style="padding:24px">
+      <div class="skel skel-row"></div>
+      <div class="skel skel-row"></div>
+      <div class="skel skel-row"></div>
+    </div>`;
+
+  const res = await apiFetch("/expenses/view_expenses");
+
+  // Always stop skeleton regardless of result
+  if (!res) {
+    showEmptyState("expenseView", "Could not load expenses. Please try again.", "alert-circle");
+    return;
   }
-}
-
-async function loadStats() {
-  const row = document.getElementById("expenseStats");
-  if (!row) return;
-  try {
-    const data = await api.get("/expenses/stats");
-    const stats = [
-      { cls: "r", label: "Total Spent",   value: data.total,       foot: "All time" },
-      { cls: "a", label: "This Month",    value: data.this_month,  foot: "Current month" },
-      { cls: "g", label: "Avg / Expense", value: data.average,     foot: `${data.count ?? 0} entries` },
-      { cls: "b", label: "Largest",       value: data.largest,     foot: "Single expense" },
-    ];
-    row.innerHTML = stats.map((s, i) => `
-      <div class="stat-card ${s.cls}" style="animation-delay:${i * 60}ms">
-        <div class="stat-label">${s.label}</div>
-        <div class="stat-val" id="expStatVal${i}">₹0.00</div>
-        <div class="stat-foot">${escapeHtml(s.foot)}</div>
-      </div>
-    `).join("");
-    stats.forEach((s, i) => countUp(document.getElementById(`expStatVal${i}`), Number(s.value) || 0));
-  } catch {
-    row.innerHTML = "";
-  }
-}
-
-/* ── View switching (All / By Tag / By Month) ─────────────────────────── */
-export function switchTab(tab) {
-  currentTab = tab;
-  ["All", "Tag", "Month"].forEach(t => {
-    document.getElementById(`tab${t}`)?.classList.toggle("active", t.toLowerCase() === tab);
-  });
-  renderCurrentView();
-}
-window.switchTab = switchTab;
-
-export function applyFilter() {
-  renderCurrentView();
-}
-window.applyFilter = applyFilter;
-
-function getFiltered() {
-  const q = (document.getElementById("searchInp")?.value || "").trim().toLowerCase();
-  const pay = document.getElementById("payFilter")?.value || "";
-  return allExpenses.filter(exp => {
-    const matchesQ = !q || (exp.description || "").toLowerCase().includes(q) || (exp.tag_name || "").toLowerCase().includes(q);
-    const matchesPay = !pay || exp.payment_type === pay;
-    return matchesQ && matchesPay;
-  });
-}
-
-function renderCurrentView() {
-  const view = document.getElementById("expenseView");
-  if (!view) return;
-  const filtered = getFiltered();
-
-  if (!filtered.length) {
-    view.innerHTML = `
-      <div class="empty">
-        <div class="empty-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
-        </div>
-        <h3>No expenses found</h3>
-        <p>Try adjusting your filters, or add your first expense.</p>
-      </div>`;
+  if (!res.ok) {
+    showEmptyState("expenseView", "Failed to load expenses.", "alert-circle");
+    showToast("Failed to load expenses.", "error");
     return;
   }
 
-  if (currentTab === "all") renderTable(filtered);
-  else if (currentTab === "tag") renderGrouped(filtered, exp => exp.tag_name || "Untagged");
-  else renderGrouped(filtered, exp => monthLabel(exp.date));
+  allExpenses = await res.json();
+  renderStats();
+  renderView();
 }
 
-function renderTable(rows) {
-  const view = document.getElementById("expenseView");
-  view.innerHTML = `
-    <table>
-      <thead>
-        <tr><th>Description</th><th>Tag</th><th>Method</th><th>Date</th><th>Amount</th><th></th></tr>
-      </thead>
-      <tbody>
-        ${rows.map(exp => `
-          <tr>
-            <td>${escapeHtml(exp.description || "—")}</td>
-            <td><span class="badge ba">${escapeHtml(exp.tag_name || "—")}</span></td>
-            <td>${escapeHtml(paymentLabel(exp.payment_type))}</td>
-            <td class="mono">${escapeHtml(formatDate(exp.date))}</td>
-            <td class="debit">-${formatCurrency(exp.amount)}</td>
-            <td><button class="btn-icon" onclick="window.__deleteExpense('${exp.id}')" aria-label="Delete">
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-            </button></td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
+function showEmptyState(containerId, message, iconName = "credit-card") {
+  document.getElementById(containerId).innerHTML = `
+    <div class="empty">
+      <div class="empty-icon">${icon(iconName, 40)}</div>
+      <h3>${esc(message)}</h3>
+    </div>`;
+}
+
+function renderStats() {
+  const total   = allExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const now     = new Date();
+  const month   = allExpenses.filter(e => {
+    const d = new Date(e.expense_date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).reduce((s, e) => s + Number(e.amount || 0), 0);
+  const cash    = allExpenses.filter(e => e.payment_type === "CASH").reduce((s, e) => s + Number(e.amount || 0), 0);
+  const digital = allExpenses.filter(e => e.payment_type !== "CASH").reduce((s, e) => s + Number(e.amount || 0), 0);
+
+  document.getElementById("expenseStats").innerHTML = `
+    <div class="stat-card r">
+      <div class="stat-icon-wrap">${icon("receipt", 20)}</div>
+      <div class="stat-label">Total Spent</div>
+      <div class="stat-val">${inr(total)}</div>
+    </div>
+    <div class="stat-card a">
+      <div class="stat-icon-wrap">${icon("calendar", 20)}</div>
+      <div class="stat-label">This Month</div>
+      <div class="stat-val">${inr(month)}</div>
+    </div>
+    <div class="stat-card g">
+      <div class="stat-icon-wrap">${icon("banknote", 20)}</div>
+      <div class="stat-label">Cash</div>
+      <div class="stat-val">${inr(cash)}</div>
+    </div>
+    <div class="stat-card b">
+      <div class="stat-icon-wrap">${icon("smartphone", 20)}</div>
+      <div class="stat-label">Digital</div>
+      <div class="stat-val">${inr(digital)}</div>
+    </div>
   `;
 }
 
-function renderGrouped(rows, keyFn) {
+function filtered() {
+  const q   = document.getElementById("searchInp").value.toLowerCase().trim();
+  const pay = document.getElementById("payFilter").value;
+  return allExpenses.filter(e => {
+    const matchQ   = !q || (e.tag_name || "").toLowerCase().includes(q) || (e.description || "").toLowerCase().includes(q);
+    const matchPay = !pay || e.payment_type === pay;
+    return matchQ && matchPay;
+  });
+}
+
+function renderView() {
+  const data = filtered();
+  if (currentTab === "all")   renderTable(data);
+  if (currentTab === "tag")   renderGrouped(data, "tag");
+  if (currentTab === "month") renderGrouped(data, "month");
+}
+
+function formatMethod(pt) {
+  const map = {
+    CASH: "Cash",
+    UPI:  "Bank Transfer",
+    CARD: "Credit Card"
+  };
+  return map[pt] || pt || "—";
+}
+
+function renderTable(data) {
+  if (!data.length) {
+    document.getElementById("expenseView").innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${icon("credit-card", 40)}</div>
+        <h3>No expenses found</h3>
+        <p>Try a different search or <a href="#" onclick="openModal('addModal');return false;" style="color:var(--gold)">add a new expense</a>.</p>
+      </div>`;
+    return;
+  }
+  document.getElementById("expenseView").innerHTML = `
+    <table>
+      <thead><tr>
+        <th style="width:30%">Context Label / Description</th>
+        <th style="width:15%">Category Tag</th>
+        <th style="width:15%">Method</th>
+        <th style="width:15%">Value Date</th>
+        <th class="mono" style="width:15%">Sum Outflow</th>
+        <th style="width:10%">Delete</th>
+      </tr></thead>
+      <tbody>
+        ${data.sort((a,b) => new Date(b.expense_date) - new Date(a.expense_date)).map(e => {
+          const dateStr = e.expense_date ? e.expense_date.split("T")[0] : "—";
+          return `
+            <tr>
+              <td style="font-weight:600;color:var(--text)">${esc(e.description) || esc(e.tag_name)}</td>
+              <td><span class="badge ba">${esc(e.tag_name)}</span></td>
+              <td style="color:var(--text-muted)">${esc(formatMethod(e.payment_type))}</td>
+              <td style="color:var(--text-muted)">${esc(dateStr)}</td>
+              <td class="mono" style="font-weight:600;color:var(--text)">${inr(e.amount)}</td>
+              <td><button class="btn btn-danger btn-sm btn-icon" data-id="${esc(String(e.id))}" data-action="delete" title="Delete">${icon("trash-2", 14)}</button></td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+  `;
+  wireRowActions();
+}
+
+function renderGrouped(data, by) {
+  if (!data.length) {
+    document.getElementById("expenseView").innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${icon("credit-card", 40)}</div>
+        <h3>No expenses found</h3>
+        <p>Try a different filter or search term.</p>
+      </div>`;
+    return;
+  }
   const groups = {};
-  rows.forEach(exp => {
-    const key = keyFn(exp);
-    (groups[key] = groups[key] || []).push(exp);
+  data.forEach(e => {
+    const key = by === "tag"
+      ? (e.tag_name || "Untagged")
+      : new Date(e.expense_date).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(e);
   });
 
-  const view = document.getElementById("expenseView");
-  view.innerHTML = `<div style="padding:18px">` + Object.entries(groups).map(([key, items], idx) => {
-    const total = items.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const sortedKeys = Object.keys(groups).sort((a, b) =>
+    by === "month" ? new Date("1 " + b) - new Date("1 " + a) : a.localeCompare(b)
+  );
+
+  document.getElementById("expenseView").innerHTML = `<div style="padding:16px">` + sortedKeys.map((key, idx) => {
+    const items = groups[key];
+    const total = items.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const gid   = "grp-" + idx;
     return `
-      <div class="group-header" onclick="window.__toggleGroup(${idx})">
-        <span>${escapeHtml(key)} <span style="color:var(--text-faint);font-weight:400">(${items.length})</span></span>
-        <span class="group-total">${formatCurrency(total)}</span>
+      <div class="group-header" data-toggle="${gid}">
+        <span>${esc(key)} <span style="color:var(--text-faint);font-weight:400;font-size:0.78rem">(${items.length})</span></span>
+        <span class="group-total" style="color:var(--gold)">${inr(total)}</span>
       </div>
-      <div class="group-body" id="group${idx}">
-        <table>
+      <div class="group-body" id="${gid}">
+        <table style="margin-bottom:8px">
+          <thead><tr>
+            <th style="width:40%">Context Label / Description</th>
+            <th style="width:20%">Method</th>
+            <th style="width:20%">Value Date</th>
+            <th class="mono" style="width:15%">Sum Outflow</th>
+            <th style="width:5%"></th>
+          </tr></thead>
           <tbody>
-            ${items.map(exp => `
-              <tr>
-                <td>${escapeHtml(exp.description || "—")}</td>
-                <td><span class="badge ba">${escapeHtml(exp.tag_name || "—")}</span></td>
-                <td class="mono">${escapeHtml(formatDate(exp.date))}</td>
-                <td class="debit">-${formatCurrency(exp.amount)}</td>
-                <td><button class="btn-icon" onclick="window.__deleteExpense('${exp.id}')" aria-label="Delete">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                </button></td>
-              </tr>
-            `).join("")}
+            ${items.map(e => {
+              const dateStr = e.expense_date ? e.expense_date.split("T")[0] : "—";
+              return `
+                <tr>
+                  <td style="font-weight:600;color:var(--text)">${esc(e.description) || esc(e.tag_name)}</td>
+                  <td style="color:var(--text-muted)">${esc(formatMethod(e.payment_type))}</td>
+                  <td style="color:var(--text-muted)">${esc(dateStr)}</td>
+                  <td class="mono" style="font-weight:600;color:var(--text)">${inr(e.amount)}</td>
+                  <td><button class="btn btn-danger btn-sm btn-icon" data-id="${esc(String(e.id))}" data-action="delete" title="Delete">${icon("trash-2", 14)}</button></td>
+                </tr>
+              `;
+            }).join("")}
           </tbody>
         </table>
       </div>
     `;
   }).join("") + `</div>`;
+
+  document.querySelectorAll("[data-toggle]").forEach(el => {
+    el.addEventListener("click", () => toggleGroup(el.dataset.toggle));
+  });
+  wireRowActions();
 }
 
-window.__toggleGroup = (idx) => {
-  const el = document.getElementById(`group${idx}`);
-  el?.classList.toggle("collapsed");
-  if (el) el.style.display = el.style.display === "none" ? "block" : "none";
-};
-
-function monthLabel(dateStr) {
-  const d = new Date(dateStr);
-  if (isNaN(d)) return "Unknown";
-  return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+function wireRowActions() {
+  document.querySelectorAll('[data-action="delete"]').forEach(btn => {
+    btn.addEventListener("click", () => confirmDelete(Number(btn.dataset.id)));
+  });
 }
 
-function paymentLabel(type) {
-  return { CASH: "Cash", UPI: "UPI", CARD: "Card" }[type] || type || "—";
+function switchTab(tab) {
+  currentTab = tab;
+  ["all", "tag", "month"].forEach(t => {
+    document.getElementById("tab" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
+  });
+  renderView();
 }
 
-/* ── Add expense ──────────────────────────────────────────────────────── */
-async function handleAddSubmit(e) {
-  e.preventDefault();
-  const btn = document.getElementById("addBtn");
-  const payload = {
-    tag_id: document.getElementById("addTag").value,
-    amount: parseFloat(document.getElementById("addAmount").value),
-    date: document.getElementById("addDate").value,
-    payment_type: document.getElementById("addPayment").value,
-    description: document.getElementById("addDesc").value.trim() || null,
-  };
+function applyFilter() { renderView(); }
 
+function toggleGroup(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === "none" ? "" : "none";
+}
+
+function confirmDelete(id) {
+  deleteId = id;
+  openModal("delModal");
+}
+
+async function handleDeleteExpense() {
+  if (!deleteId) return;
+  const btn = document.getElementById("confirmDelBtn");
   btn.disabled = true;
+  btn.innerHTML = `${icon("refresh-cw", 14)} Deleting…`;
   try {
-    await api.post("/expenses", payload);
-    showToast("Expense added.", "success");
-    closeModal("addModal");
-    document.getElementById("addForm").reset();
-    document.getElementById("addDate").value = new Date().toISOString().slice(0, 10);
-    await loadExpenses();
-    loadStats();
-  } catch (err) {
-    showToast(err.message || "Could not add expense.", "error");
+    const res = await apiFetch(`/expenses/delete_expense?expenseId=${deleteId}`, { method: "DELETE" });
+    if (res && res.ok) {
+      allExpenses = allExpenses.filter(e => e.id !== deleteId);
+      renderStats();
+      renderView();
+      closeModal("delModal");
+      showToast("Expense deleted.", "success");
+    } else {
+      showToast("Could not delete expense.", "error");
+    }
+  } catch {
+    showToast("Network error.", "error");
   } finally {
+    btn.innerHTML = `${icon("trash-2", 14)} Delete`;
     btn.disabled = false;
+    deleteId = null;
   }
 }
 
-/* ── Delete expense ───────────────────────────────────────────────────── */
-window.__deleteExpense = (id) => {
-  pendingDeleteId = id;
-  document.getElementById("delModal")?.classList.add("open");
-};
+async function handleAddExpense(e) {
+  e.preventDefault();
+  const btn = document.getElementById("addBtn");
 
-async function handleConfirmDelete() {
-  if (!pendingDeleteId) return;
-  const btn = document.getElementById("confirmDelBtn");
+  const amountVal = document.getElementById("addAmount").value;
+  const amountErrs = validateAmount(amountVal);
+  if (amountErrs.length) { showToast(amountErrs[0], "error"); return; }
+
+  if (!document.getElementById("addTag").value) { showToast("Please select a tag.", "error"); return; }
+
   btn.disabled = true;
+  btn.innerHTML = `${icon("refresh-cw", 14)} Saving…`;
+
+  const body = {
+    tag_name:     document.getElementById("addTag").value,
+    amount:       Number(amountVal),
+    expense_date: document.getElementById("addDate").value,
+    payment_type: document.getElementById("addPayment").value,
+    description:  document.getElementById("addDesc").value.trim() || null,
+  };
+
   try {
-    await api.delete(`/expenses/${pendingDeleteId}`);
-    showToast("Expense deleted.", "success");
-    closeModal("delModal");
-    await loadExpenses();
-    loadStats();
-  } catch (err) {
-    showToast(err.message || "Could not delete expense.", "error");
+    const res = await apiFetch("/expenses/add_expenses", { method: "POST", body: JSON.stringify(body) });
+    if (!res) return;
+    const data = await res.json();
+    if (res.ok) {
+      closeModal("addModal");
+      showToast("Expense added!", "success");
+      document.getElementById("addForm").reset();
+      document.getElementById("addDate").value = new Date().toISOString().split("T")[0];
+      await loadExpenses();
+    } else {
+      showToast(data.detail || "Failed to add expense.", "error");
+    }
+  } catch {
+    showToast("Network error.", "error");
   } finally {
+    btn.innerHTML = `${icon("plus", 14)} Add Expense`;
     btn.disabled = false;
-    pendingDeleteId = null;
   }
 }

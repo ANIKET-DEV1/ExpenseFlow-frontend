@@ -1,213 +1,285 @@
-// js/settlements.js
-import { api } from "./api.js";
-import { showToast, formatCurrency, formatDate, escapeHtml, closeModal } from "./utils.js";
-import { countUp } from "./animations.js";
+import { apiFetch, showToast, esc, inr, fmt, openModal, closeModal, overlayClose } from "./utils.js";
+import { validateAmount, validatePersonName } from "./auth.js";
+import { icon } from "./icons.js";
+import { initPageAnimations } from "./animations.js";
 
-let allDebts = [];
+let debts      = [];
 let currentTab = "all";
-let pendingDeleteId = null;
-let pendingEditId = null;
+let deleteId   = null;
+let editId     = null;
 
 export async function initSettlements() {
-  bindStaticEvents();
+  overlayClose("addDebtModal");
+  overlayClose("editDebtModal");
+  overlayClose("delDebtModal");
+
+  document.getElementById("debtDate").value = new Date().toISOString().split("T")[0];
+  document.getElementById("debtAmount").setAttribute("min", "1");
+  document.getElementById("editAmount").setAttribute("min", "1");
+
+  window.openModal  = openModal;
+  window.closeModal = closeModal;
+
+  document.getElementById("tabAll").addEventListener("click", () => switchTab("all"));
+  document.getElementById("tabPending").addEventListener("click", () => switchTab("pending"));
+  document.getElementById("tabPaid").addEventListener("click", () => switchTab("paid"));
+
+  document.getElementById("addDebtForm").addEventListener("submit", handleAddDebt);
+  document.getElementById("editDebtForm").addEventListener("submit", handleEditDebt);
+  document.getElementById("confirmDebtDelBtn").addEventListener("click", handleDeleteDebt);
+
   await loadDebts();
-  loadStats();
-}
-
-function bindStaticEvents() {
-  document.getElementById("addDebtForm")?.addEventListener("submit", handleAddSubmit);
-  document.getElementById("editDebtForm")?.addEventListener("submit", handleEditSubmit);
-  document.getElementById("confirmDebtDelBtn")?.addEventListener("click", handleConfirmDelete);
-
-  const dateInput = document.getElementById("debtDate");
-  if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
-
-  document.getElementById("tabAll")?.addEventListener("click", () => switchTab("all"));
-  document.getElementById("tabPending")?.addEventListener("click", () => switchTab("pending"));
-  document.getElementById("tabPaid")?.addEventListener("click", () => switchTab("paid"));
-}
-
-function switchTab(tab) {
-  currentTab = tab;
-  ["All", "Pending", "Paid"].forEach(t => {
-    document.getElementById(`tab${t}`)?.classList.toggle("active", t.toLowerCase() === tab);
-  });
-  render();
+  initPageAnimations();
 }
 
 async function loadDebts() {
-  const view = document.getElementById("debtView");
-  if (!view) return;
-  view.innerHTML = `<div style="padding:24px"><div class="skel skel-row"></div><div class="skel skel-row"></div><div class="skel skel-row"></div></div>`;
-  try {
-    allDebts = await api.get("/settlements");
-    if (!Array.isArray(allDebts)) allDebts = allDebts.items || [];
-    render();
-  } catch (err) {
-    view.innerHTML = `<div class="empty"><h3>Couldn't load settlements</h3><p>${escapeHtml(err.message)}</p></div>`;
+  document.getElementById("debtView").innerHTML = `
+    <div style="padding:24px">
+      <div class="skel skel-row"></div>
+      <div class="skel skel-row"></div>
+      <div class="skel skel-row"></div>
+    </div>`;
+
+  const res = await apiFetch("/settlements/View_debt");
+
+  if (!res) {
+    document.getElementById("debtView").innerHTML = `<div class="empty"><div class="empty-icon">${icon("alert-circle",40)}</div><h3>Could not load settlements.</h3></div>`;
+    return;
   }
+  if (!res.ok) {
+    document.getElementById("debtView").innerHTML = `<div class="empty"><div class="empty-icon">${icon("alert-circle",40)}</div><h3>Failed to load settlements.</h3></div>`;
+    showToast("Failed to load settlements.", "error");
+    return;
+  }
+
+  debts = await res.json();
+  renderStats();
+  renderDebts();
 }
 
-async function loadStats() {
-  const row = document.getElementById("debtStats");
-  if (!row) return;
-  try {
-    const data = await api.get("/settlements/summary");
-    const stats = [
-      { cls: "r", label: "You Owe",        value: data.total_borrowed, foot: "Pending, borrowed" },
-      { cls: "g", label: "Owed To You",    value: data.total_lent,     foot: "Pending, lent" },
-      { cls: "a", label: "Net Position",   value: data.net_position,   foot: "Lent minus borrowed" },
-      { cls: "b", label: "Settled Total",  value: data.total_settled,  foot: "All-time cleared" },
-    ];
-    row.innerHTML = stats.map((s, i) => `
-      <div class="stat-card ${s.cls}" style="animation-delay:${i * 60}ms">
-        <div class="stat-label">${s.label}</div>
-        <div class="stat-val" id="debtStatVal${i}">₹0.00</div>
-        <div class="stat-foot">${escapeHtml(s.foot)}</div>
-      </div>
-    `).join("");
-    stats.forEach((s, i) => countUp(document.getElementById(`debtStatVal${i}`), Number(s.value) || 0));
-  } catch {
-    row.innerHTML = "";
-  }
+function renderStats() {
+  const youOwe    = debts.filter(d => d.debt_type === "borrowed" && d.debt_status === "pending").reduce((s, d) => s + Number(d.amount || 0), 0);
+  const owedToYou = debts.filter(d => d.debt_type === "lent"     && d.debt_status === "pending").reduce((s, d) => s + Number(d.amount || 0), 0);
+  const pending   = debts.filter(d => d.debt_status === "pending").length;
+  const paid      = debts.filter(d => d.debt_status === "paid").length;
+
+  document.getElementById("debtStats").innerHTML = `
+    <div class="stat-card r">
+      <div class="stat-icon-wrap">${icon("arrow-up-right", 20)}</div>
+      <div class="stat-label">You Owe</div>
+      <div class="stat-val">${inr(youOwe)}</div>
+    </div>
+    <div class="stat-card g">
+      <div class="stat-icon-wrap">${icon("arrow-down-left", 20)}</div>
+      <div class="stat-label">Owed to You</div>
+      <div class="stat-val">${inr(owedToYou)}</div>
+    </div>
+    <div class="stat-card a">
+      <div class="stat-icon-wrap">${icon("clock", 20)}</div>
+      <div class="stat-label">Pending</div>
+      <div class="stat-val">${pending}</div>
+    </div>
+    <div class="stat-card b">
+      <div class="stat-icon-wrap">${icon("check-circle", 20)}</div>
+      <div class="stat-label">Paid</div>
+      <div class="stat-val">${paid}</div>
+    </div>
+  `;
 }
 
-function render() {
-  const view = document.getElementById("debtView");
-  if (!view) return;
-  const rows = allDebts.filter(d => currentTab === "all" || d.status === currentTab);
+function renderDebts() {
+  let data = debts;
+  if (currentTab === "pending") data = debts.filter(d => d.debt_status === "pending");
+  if (currentTab === "paid")    data = debts.filter(d => d.debt_status === "paid");
 
-  if (!rows.length) {
-    view.innerHTML = `
+  if (!data.length) {
+    const msg = currentTab === "all"
+      ? "No settlements yet. Add your first one above."
+      : `No ${currentTab} settlements found.`;
+    document.getElementById("debtView").innerHTML = `
       <div class="empty">
-        <div class="empty-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/></svg>
-        </div>
-        <h3>No settlements found</h3>
-        <p>Add a record to start tracking who owes who.</p>
+        <div class="empty-icon">${icon("handshake", 40)}</div>
+        <h3>${esc(msg)}</h3>
       </div>`;
     return;
   }
 
-  view.innerHTML = `
+  document.getElementById("debtView").innerHTML = `
     <table>
-      <thead>
-        <tr><th>Person</th><th>Type</th><th>Status</th><th>Date</th><th>Amount</th><th></th></tr>
-      </thead>
+      <thead><tr>
+        <th style="width:25%">Peer Debtor / Creditor</th>
+        <th style="width:20%">Orientation Type</th>
+        <th style="width:20%">Clearance Status</th>
+        <th style="width:15%">Log Date</th>
+        <th class="mono" style="width:12%">Outstanding Sum</th>
+        <th style="width:8%">Actions</th>
+      </tr></thead>
       <tbody>
-        ${rows.map(d => `
-          <tr>
-            <td>${escapeHtml(d.person_name)}</td>
-            <td>${d.type === "lent"
-              ? `<span class="badge bg">Owes Me</span>`
-              : `<span class="badge br">I Owe</span>`}</td>
-            <td>${d.status === "paid"
-              ? `<span class="badge bs">Settled</span>`
-              : `<span class="badge ba">Pending</span>`}</td>
-            <td class="mono">${escapeHtml(formatDate(d.date))}</td>
-            <td class="${d.type === "lent" ? "credit" : "debit"}">${formatCurrency(d.amount)}</td>
-            <td style="display:flex;gap:4px">
-              <button class="btn-icon" onclick="window.__editDebt('${d.id}')" aria-label="Edit">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-              </button>
-              <button class="btn-icon" onclick="window.__deleteDebt('${d.id}','${escapeHtml(d.person_name)}')" aria-label="Delete">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-              </button>
-            </td>
-          </tr>
-        `).join("")}
+        ${data.map(d => {
+          const isBorrow  = d.debt_type === "borrowed";
+          const isPending = d.debt_status === "pending";
+          const dateStr   = d.debt_date ? d.debt_date.split("T")[0] : "—";
+          return `
+            <tr>
+              <td style="font-weight:600;color:var(--text)">${esc(d.person_name)}</td>
+              <td>
+                <span class="badge ${isBorrow ? "br" : "bg"}">
+                  ${isBorrow ? icon("arrow-up-right", 12) : icon("arrow-down-left", 12)}
+                  ${isBorrow ? "I Owe" : "Owes Me"}
+                </span>
+              </td>
+              <td style="color:var(--text-muted)">${esc(dateStr)}</td>
+              <td>
+                <span class="badge ${isPending ? "ba" : "bg"}">
+                  ${isPending ? icon("clock", 12) : icon("check-circle", 12)}
+                  ${isPending ? "Pending" : "Settled"}
+                </span>
+              </td>
+              <td class="mono" style="font-weight:600;color:var(--text)">${inr(d.amount)}</td>
+              <td style="display:flex;gap:6px;align-items:center">
+                <button class="btn btn-outline btn-sm" data-action="edit" data-id="${esc(String(d.id))}" title="Edit">${icon("pencil", 13)}</button>
+                <button class="btn btn-danger btn-sm btn-icon" data-action="delete" data-id="${esc(String(d.id))}" data-name="${esc(d.person_name)}" title="Delete">${icon("trash-2", 14)}</button>
+              </td>
+            </tr>
+          `;
+        }).join("")}
       </tbody>
     </table>
   `;
+
+  document.querySelectorAll('[data-action="edit"]').forEach(btn => {
+    btn.addEventListener("click", () => openEdit(Number(btn.dataset.id)));
+  });
+  document.querySelectorAll('[data-action="delete"]').forEach(btn => {
+    btn.addEventListener("click", () => confirmDelete(Number(btn.dataset.id), btn.dataset.name));
+  });
 }
 
-/* ── Add ──────────────────────────────────────────────────────────────── */
-async function handleAddSubmit(e) {
-  e.preventDefault();
-  const btn = document.getElementById("addDebtBtn");
-  const payload = {
-    person_name: document.getElementById("debtPerson").value.trim(),
-    amount: parseFloat(document.getElementById("debtAmount").value),
-    date: document.getElementById("debtDate").value,
-    type: document.getElementById("debtType").value,
-    status: document.getElementById("debtStatus").value,
-  };
-
-  btn.disabled = true;
-  try {
-    await api.post("/settlements", payload);
-    showToast("Settlement added.", "success");
-    closeModal("addDebtModal");
-    document.getElementById("addDebtForm").reset();
-    document.getElementById("debtDate").value = new Date().toISOString().slice(0, 10);
-    await loadDebts();
-    loadStats();
-  } catch (err) {
-    showToast(err.message || "Could not add settlement.", "error");
-  } finally {
-    btn.disabled = false;
-  }
+function switchTab(tab) {
+  currentTab = tab;
+  ["all", "pending", "paid"].forEach(t => {
+    document.getElementById("tab" + t.charAt(0).toUpperCase() + t.slice(1))?.classList.toggle("active", t === tab);
+  });
+  renderDebts();
 }
 
-/* ── Edit ─────────────────────────────────────────────────────────────── */
-window.__editDebt = (id) => {
-  const debt = allDebts.find(d => String(d.id) === String(id));
-  if (!debt) return;
-  pendingEditId = id;
-  document.getElementById("editPerson").value = debt.person_name;
-  document.getElementById("editAmount").value = debt.amount;
-  document.getElementById("editType").value = debt.type;
-  document.getElementById("editStatus").value = debt.status;
-  document.getElementById("editDebtModal")?.classList.add("open");
-};
-
-async function handleEditSubmit(e) {
-  e.preventDefault();
-  if (!pendingEditId) return;
-  const btn = document.getElementById("editDebtBtn");
-  const payload = {
-    person_name: document.getElementById("editPerson").value.trim(),
-    amount: parseFloat(document.getElementById("editAmount").value),
-    type: document.getElementById("editType").value,
-    status: document.getElementById("editStatus").value,
-  };
-
-  btn.disabled = true;
-  try {
-    await api.put(`/settlements/${pendingEditId}`, payload);
-    showToast("Settlement updated.", "success");
-    closeModal("editDebtModal");
-    await loadDebts();
-    loadStats();
-  } catch (err) {
-    showToast(err.message || "Could not update settlement.", "error");
-  } finally {
-    btn.disabled = false;
-    pendingEditId = null;
-  }
+function openEdit(id) {
+  const d = debts.find(x => x.id === id);
+  if (!d) return;
+  editId = id;
+  document.getElementById("editPerson").value = d.person_name;
+  document.getElementById("editAmount").value = d.amount;
+  document.getElementById("editType").value   = d.debt_type;
+  document.getElementById("editStatus").value = d.debt_status;
+  openModal("editDebtModal");
 }
 
-/* ── Delete ───────────────────────────────────────────────────────────── */
-window.__deleteDebt = (id, name) => {
-  pendingDeleteId = id;
+function confirmDelete(id, name) {
+  deleteId = id;
   document.getElementById("delDebtName").textContent = name;
-  document.getElementById("delDebtModal")?.classList.add("open");
-};
+  openModal("delDebtModal");
+}
 
-async function handleConfirmDelete() {
-  if (!pendingDeleteId) return;
+async function handleDeleteDebt() {
+  if (!deleteId) return;
   const btn = document.getElementById("confirmDebtDelBtn");
   btn.disabled = true;
+  btn.innerHTML = `${icon("refresh-cw", 14)} Deleting…`;
   try {
-    await api.delete(`/settlements/${pendingDeleteId}`);
-    showToast("Settlement deleted.", "success");
-    closeModal("delDebtModal");
-    await loadDebts();
-    loadStats();
-  } catch (err) {
-    showToast(err.message || "Could not delete settlement.", "error");
+    const res = await apiFetch(`/settlements/delete_debt?del_id=${deleteId}`, { method: "DELETE" });
+    if (res && res.ok) {
+      debts = debts.filter(d => d.id !== deleteId);
+      renderStats();
+      renderDebts();
+      closeModal("delDebtModal");
+      showToast("Settlement deleted.", "success");
+    } else {
+      showToast("Could not delete.", "error");
+    }
+  } catch {
+    showToast("Network error.", "error");
   } finally {
+    btn.innerHTML = `${icon("trash-2", 14)} Delete`;
     btn.disabled = false;
-    pendingDeleteId = null;
+    deleteId = null;
+  }
+}
+
+async function handleEditDebt(e) {
+  e.preventDefault();
+  const btn = document.getElementById("editDebtBtn");
+
+  const person = document.getElementById("editPerson").value.trim();
+  const amountVal = document.getElementById("editAmount").value;
+  const errs = [...validatePersonName(person), ...validateAmount(amountVal)];
+  if (errs.length) { showToast(errs[0], "error"); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = `${icon("refresh-cw", 14)} Saving…`;
+
+  const body = {
+    person_name: person,
+    amount:      Number(amountVal),
+    debt_type:   document.getElementById("editType").value,
+    debt_status: document.getElementById("editStatus").value,
+  };
+
+  try {
+    const res = await apiFetch(`/settlements/update_debt/${editId}`, { method: "PUT", body: JSON.stringify(body) });
+    if (!res) return;
+    const data = await res.json();
+    if (res.ok) {
+      closeModal("editDebtModal");
+      showToast("Settlement updated!", "success");
+      await loadDebts();
+    } else {
+      showToast(data.detail || "Could not update.", "error");
+    }
+  } catch {
+    showToast("Network error.", "error");
+  } finally {
+    btn.innerHTML = `${icon("check", 14)} Save Changes`;
+    btn.disabled = false;
+  }
+}
+
+async function handleAddDebt(e) {
+  e.preventDefault();
+  const btn = document.getElementById("addDebtBtn");
+
+  const person = document.getElementById("debtPerson").value.trim();
+  const amountVal = document.getElementById("debtAmount").value;
+  const errs = [...validatePersonName(person), ...validateAmount(amountVal)];
+  if (errs.length) { showToast(errs[0], "error"); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = `${icon("refresh-cw", 14)} Adding…`;
+
+  const body = {
+    person_name: person,
+    amount:      Number(amountVal),
+    debt_date:   document.getElementById("debtDate").value,
+    debt_type:   document.getElementById("debtType").value,
+    debt_status: document.getElementById("debtStatus").value,
+  };
+
+  try {
+    const res = await apiFetch("/settlements/Add_debt", { method: "POST", body: JSON.stringify(body) });
+    if (!res) return;
+    const data = await res.json();
+    if (res.ok) {
+      closeModal("addDebtModal");
+      document.getElementById("addDebtForm").reset();
+      document.getElementById("debtDate").value = new Date().toISOString().split("T")[0];
+      showToast("Settlement added!", "success");
+      await loadDebts();
+    } else {
+      showToast(data.detail || "Could not add settlement.", "error");
+    }
+  } catch {
+    showToast("Network error.", "error");
+  } finally {
+    btn.innerHTML = `${icon("plus", 14)} Add Settlement`;
+    btn.disabled = false;
   }
 }

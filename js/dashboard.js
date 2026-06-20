@@ -1,145 +1,152 @@
-// js/dashboard.js
-import { fetchUser, api } from "./api.js";
-import { renderNavbar, renderSidebar, formatCurrency, formatDate, showToast, escapeHtml } from "./utils.js";
-import { countUp, stagger } from "./animations.js";
+import { apiFetch, showToast, esc, inr, fmt } from "./utils.js";
+import { icon } from "./icons.js";
+import { staggerIn } from "./animations.js";
 
-/**
- * Boots the dashboard: auth guard, renders shared navbar/sidebar, then loads
- * stats, recent expenses, tag breakdown, and settlement summary in parallel.
- * Returns the user object (or null if not authenticated) — dashboard.html
- * uses this to build the "Good morning, X" greeting itself.
- */
-export async function initDashboard() {
-  const user = await fetchUser();
-  if (!user) return null;
-
-  renderNavbar(user);
-  renderSidebar(user);
-  showFlashIfAny();
-
-  // Fire all data loads independently so one slow/failed endpoint doesn't block the rest.
-  loadStats();
-  loadRecentExpenses();
-  loadTagBreakdown();
-  loadSettlementSummary();
-
-  return user;
-}
-
-function showFlashIfAny() {
-  const msg = sessionStorage.getItem("flash");
-  if (!msg) return;
-  sessionStorage.removeItem("flash");
-  const banner = document.getElementById("flashBanner");
-  const text = document.getElementById("flashText");
-  if (banner && text) {
-    text.textContent = msg;
-    banner.classList.add("show");
-    setTimeout(() => banner.classList.remove("show"), 5000);
-  }
-}
-
-async function loadStats() {
-  const row = document.getElementById("statRow");
-  if (!row) return;
+export async function loadDashboard() {
   try {
-    const data = await api.get("/dashboard/summary");
-    const stats = [
-      { cls: "g", label: "Total Logged", value: data.total_expenses, icon: iconWallet(), foot: `${data.expense_count ?? 0} expenses logged` },
-      { cls: "r", label: "Owed By You",  value: data.total_borrowed, icon: iconArrowDown(), foot: "Owed by you to peers" },
-      { cls: "a", label: "Owed To You",  value: data.total_lent,     icon: iconArrowUp(), foot: "Owed to you by peers" },
-      { cls: "b", label: "Net Position", value: data.net_position,   icon: iconScale(), foot: "Lent minus borrowed" },
-    ];
-    row.innerHTML = stats.map((s, i) => `
-      <div class="stat-card ${s.cls}" style="animation-delay:${i * 60}ms">
-        <div class="stat-icon-wrap">${s.icon}</div>
-        <div class="stat-label">${s.label}</div>
-        <div class="stat-val" id="statVal${i}">₹0.00</div>
-        <div class="stat-foot">${escapeHtml(s.foot)}</div>
-      </div>
-    `).join("");
-    stats.forEach((s, i) => countUp(document.getElementById(`statVal${i}`), Number(s.value) || 0));
+    const [expRes, debtRes] = await Promise.all([
+      apiFetch("/expenses/view_expenses"),
+      apiFetch("/settlements/View_debt"),
+    ]);
+
+    // Always resolve to arrays — empty or not
+    const expenses = (expRes && expRes.ok) ? await expRes.json() : [];
+    const debts    = (debtRes && debtRes.ok) ? await debtRes.json() : [];
+
+    renderStats(expenses, debts);
+    renderRecent(expenses);
+    renderTagBreakdown(expenses);
+    renderDebtStats(debts);
+    staggerIn(".stat-card");
   } catch (err) {
-    row.innerHTML = `<div class="empty"><p>Couldn't load your summary. ${escapeHtml(err.message)}</p></div>`;
+    // Stop skeletons even on error
+    clearSkeletons();
+    showToast("Could not load dashboard data.", "error");
   }
 }
 
-async function loadRecentExpenses() {
-  const list = document.getElementById("recentList");
-  if (!list) return;
-  try {
-    const expenses = await api.get("/expenses?limit=5&sort=-date");
-    const items = Array.isArray(expenses) ? expenses : expenses.items || [];
-    if (!items.length) {
-      list.innerHTML = `<div class="empty"><p>No expenses logged yet.</p></div>`;
-      return;
-    }
-    list.innerHTML = items.slice(0, 5).map(exp => `
-      <div class="recent-item">
-        <span class="recent-dot"></span>
-        <div class="recent-text">
-          ${escapeHtml(exp.description || exp.tag_name || "Expense")}
-          <div class="recent-tag">${escapeHtml(exp.tag_name || "")} · ${escapeHtml(formatDate(exp.date))}</div>
-        </div>
-        <div class="recent-amt">-${formatCurrency(exp.amount)}</div>
-      </div>
-    `).join("");
-  } catch (err) {
-    list.innerHTML = `<div class="empty"><p>Couldn't load recent expenses.</p></div>`;
-  }
+function clearSkeletons() {
+  const statRow = document.getElementById("statRow");
+  if (statRow) statRow.innerHTML = `<div class="empty" style="grid-column:1/-1"><p>Could not load stats.</p></div>`;
+  const recentList = document.getElementById("recentList");
+  if (recentList) recentList.innerHTML = `<div class="empty"><p>Could not load data.</p></div>`;
+  const tagBreakdown = document.getElementById("tagBreakdown");
+  if (tagBreakdown) tagBreakdown.innerHTML = `<div class="empty"><p>Could not load data.</p></div>`;
+  const debtStats = document.getElementById("debtStats");
+  if (debtStats) debtStats.innerHTML = `<div class="empty"><p>Could not load data.</p></div>`;
 }
 
-async function loadTagBreakdown() {
-  const el = document.getElementById("tagBreakdown");
-  if (!el) return;
-  try {
-    const breakdown = await api.get("/expenses/by-tag");
-    const items = Array.isArray(breakdown) ? breakdown : breakdown.items || [];
-    if (!items.length) {
-      el.innerHTML = `<div class="empty"><p>No tagged expenses yet.</p></div>`;
-      return;
-    }
-    const max = Math.max(...items.map(i => Number(i.total) || 0), 1);
-    el.innerHTML = items.slice(0, 6).map(item => `
-      <div class="recent-item" style="flex-direction:column;align-items:stretch;gap:6px">
-        <div style="display:flex;justify-content:space-between;font-size:0.84rem">
-          <span>${escapeHtml(item.tag_name)}</span>
-          <span class="mono">${formatCurrency(item.total)}</span>
-        </div>
-        <div style="height:6px;background:var(--surface2);border-radius:4px;overflow:hidden">
-          <div style="height:100%;width:${Math.max(4, (Number(item.total) / max) * 100)}%;background:var(--gold);border-radius:4px"></div>
-        </div>
-      </div>
-    `).join("");
-  } catch {
-    el.innerHTML = `<div class="empty"><p>Couldn't load tag breakdown.</p></div>`;
-  }
+function renderStats(expenses, debts) {
+  const total = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const now = new Date();
+  const thisMonth = expenses
+    .filter(e => {
+      const d = new Date(e.expense_date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    })
+    .reduce((s, e) => s + Number(e.amount || 0), 0);
+
+  const youOwe = debts
+    .filter(d => d.debt_type === "borrowed" && d.debt_status === "pending")
+    .reduce((s, d) => s + Number(d.amount || 0), 0);
+  const owedToYou = debts
+    .filter(d => d.debt_type === "lent" && d.debt_status === "pending")
+    .reduce((s, d) => s + Number(d.amount || 0), 0);
+
+  document.getElementById("statRow").innerHTML = `
+    <div class="stat-card g">
+      <div class="stat-icon-wrap">${icon("wallet", 20)}</div>
+      <div class="stat-label">Total Spent</div>
+      <div class="stat-val">${inr(total)}</div>
+    </div>
+    <div class="stat-card r">
+      <div class="stat-icon-wrap">${icon("calendar", 20)}</div>
+      <div class="stat-label">This Month</div>
+      <div class="stat-val">${inr(thisMonth)}</div>
+    </div>
+    <div class="stat-card a">
+      <div class="stat-icon-wrap">${icon("arrow-up-right", 20)}</div>
+      <div class="stat-label">You Owe</div>
+      <div class="stat-val">${inr(youOwe)}</div>
+    </div>
+    <div class="stat-card b">
+      <div class="stat-icon-wrap">${icon("arrow-down-left", 20)}</div>
+      <div class="stat-label">Owed to You</div>
+      <div class="stat-val">${inr(owedToYou)}</div>
+    </div>
+  `;
 }
 
-async function loadSettlementSummary() {
-  const el = document.getElementById("debtStats");
-  if (!el) return;
-  try {
-    const data = await api.get("/settlements/summary");
-    el.innerHTML = `
-      <div class="stat-card r" style="margin-bottom:0">
-        <div class="stat-label">You Owe</div>
-        <div class="stat-val" id="debtVal0">₹0.00</div>
+function renderRecent(expenses) {
+  const recent = [...expenses]
+    .sort((a, b) => new Date(b.expense_date) - new Date(a.expense_date))
+    .slice(0, 6);
+
+  if (!recent.length) {
+    document.getElementById("recentList").innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${icon("credit-card", 36)}</div>
+        <h3>No expenses yet</h3>
+        <p><a href="expenses.html" style="color:var(--green)">Add your first expense →</a></p>
+      </div>`;
+    return;
+  }
+  document.getElementById("recentList").innerHTML = recent.map(e => `
+    <div class="recent-item">
+      <div class="recent-dot"></div>
+      <div class="recent-text">
+        <div style="font-weight:500;font-size:0.84rem">${esc(e.tag_name)}</div>
+        <div class="recent-date">${fmt(e.expense_date)}</div>
       </div>
-      <div class="stat-card g" style="margin-bottom:0">
-        <div class="stat-label">Owed To You</div>
-        <div class="stat-val" id="debtVal1">₹0.00</div>
+      <div class="recent-amt debit">${inr(e.amount)}</div>
+    </div>
+  `).join("");
+}
+
+function renderTagBreakdown(expenses) {
+  if (!expenses.length) {
+    document.getElementById("tagBreakdown").innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${icon("bar-chart", 36)}</div>
+        <h3>No data yet</h3>
+        <p>Expenses will appear here once added.</p>
+      </div>`;
+    return;
+  }
+  const map = {};
+  expenses.forEach(e => { map[e.tag_name] = (map[e.tag_name] || 0) + Number(e.amount || 0); });
+  const total  = Object.values(map).reduce((s, v) => s + v, 0);
+  const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+  document.getElementById("tagBreakdown").innerHTML = sorted.map(([tag, amt]) => {
+    const pct = total > 0 ? Math.round((amt / total) * 100) : 0;
+    return `
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:5px">
+          <span style="font-weight:500">${esc(tag)}</span>
+          <span class="mono debit">${inr(amt)}</span>
+        </div>
+        <div style="height:5px;background:var(--surface2);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:var(--green);border-radius:4px;transition:width 0.6s ease"></div>
+        </div>
       </div>
     `;
-    countUp(document.getElementById("debtVal0"), Number(data.total_borrowed) || 0);
-    countUp(document.getElementById("debtVal1"), Number(data.total_lent) || 0);
-  } catch {
-    el.innerHTML = `<div class="empty"><p>Couldn't load settlement summary.</p></div>`;
-  }
+  }).join("");
 }
 
-/* ── Inline icons ─────────────────────────────────────────────────────── */
-function iconWallet() { return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>`; }
-function iconArrowDown() { return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>`; }
-function iconArrowUp() { return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>`; }
-function iconScale() { return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16h6"/><path d="M2 16h6"/><path d="M9 8l3-6 3 6"/><path d="m17 16-3-8-3 8"/><path d="M2 16c0 1.7 1.3 3 3 3s3-1.3 3-3"/><path d="M16 16c0 1.7 1.3 3 3 3s3-1.3 3-3"/></svg>`; }
+function renderDebtStats(debts) {
+  const pending = debts.filter(d => d.debt_status === "pending").length;
+  const paid    = debts.filter(d => d.debt_status === "paid").length;
+  document.getElementById("debtStats").innerHTML = `
+    <div class="stat-card a">
+      <div class="stat-icon-wrap">${icon("clock", 20)}</div>
+      <div class="stat-label">Pending Settlements</div>
+      <div class="stat-val">${pending}</div>
+    </div>
+    <div class="stat-card g">
+      <div class="stat-icon-wrap">${icon("check-circle", 20)}</div>
+      <div class="stat-label">Settled</div>
+      <div class="stat-val">${paid}</div>
+    </div>
+  `;
+}

@@ -1,98 +1,142 @@
-// js/tags.js
-import { api } from "./api.js";
-import { showToast, escapeHtml, closeModal } from "./utils.js";
+import { apiFetch, showToast, esc, openModal, closeModal, overlayClose } from "./utils.js";
+import { icon } from "./icons.js";
+import { initPageAnimations } from "./animations.js";
 
-let allTags = [];
-let pendingDeleteId = null;
+let tags        = [];
+let deleteTagId = null;
 
 export async function initTags() {
-  document.getElementById("addTagForm")?.addEventListener("submit", handleAddSubmit);
-  document.getElementById("confirmTagDelBtn")?.addEventListener("click", handleConfirmDelete);
+  overlayClose("addTagModal");
+  overlayClose("delTagModal");
+
+  window.openModal  = openModal;
+  window.closeModal = closeModal;
+
+  document.getElementById("addTagForm").addEventListener("submit", handleAddTag);
+  document.getElementById("confirmTagDelBtn").addEventListener("click", handleDeleteTag);
+
   await loadTags();
+  initPageAnimations();
 }
 
 async function loadTags() {
-  const list = document.getElementById("tagList");
-  if (!list) return;
-  try {
-    allTags = await api.get("/tags");
-    if (!Array.isArray(allTags)) allTags = allTags.items || [];
-    render();
-  } catch (err) {
-    list.innerHTML = `<div class="empty"><h3>Couldn't load tags</h3><p>${escapeHtml(err.message)}</p></div>`;
+  // Show skeleton
+  document.getElementById("tagList").innerHTML = `
+    <div class="skel" style="height:36px;width:120px;display:inline-block;margin:6px"></div>
+    <div class="skel" style="height:36px;width:90px;display:inline-block;margin:6px"></div>
+    <div class="skel" style="height:36px;width:140px;display:inline-block;margin:6px"></div>`;
+
+  const res = await apiFetch("/tags/view_tags");
+
+  if (!res || !res.ok) {
+    document.getElementById("tagList").innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${icon("alert-circle", 40)}</div>
+        <h3>Could not load tags. Please refresh.</h3>
+      </div>`;
+    if (res && !res.ok) showToast("Failed to load tags.", "error");
+    return;
   }
+
+  tags = await res.json();
+  renderTags();
 }
 
-function render() {
-  const list = document.getElementById("tagList");
-  if (!list) return;
-
-  if (!allTags.length) {
-    list.innerHTML = `
+function renderTags() {
+  const el = document.getElementById("tagList");
+  if (!tags.length) {
+    el.innerHTML = `
       <div class="empty">
-        <div class="empty-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/></svg>
-        </div>
+        <div class="empty-icon">${icon("tag", 40)}</div>
         <h3>No tags yet</h3>
-        <p>Create your first tag to start categorizing expenses.</p>
+        <p>Create a tag to start categorising expenses.</p>
       </div>`;
     return;
   }
-
-  list.innerHTML = `<div class="tag-grid">` + allTags.map(tag => `
+  el.innerHTML = `<div class="tag-grid">${tags.map(t => `
     <div class="tag-pill">
-      <span>${escapeHtml(tag.name)}</span>
-      <button class="tag-del" onclick="window.__deleteTag('${tag.id}','${escapeHtml(tag.name)}')" aria-label="Delete tag">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-      </button>
+      ${icon("tag", 13)} <span>${esc(t.tag_name)}</span>
+      <button class="tag-del" data-id="${esc(String(t.id))}" data-name="${esc(t.tag_name)}" title="Delete tag">${icon("x", 12)}</button>
     </div>
-  `).join("") + `</div>`;
+  `).join("")}</div>`;
+
+  el.querySelectorAll(".tag-del").forEach(btn => {
+    btn.addEventListener("click", () => confirmTagDelete(btn.dataset.id, btn.dataset.name));
+  });
 }
 
-async function handleAddSubmit(e) {
-  e.preventDefault();
-  const btn = document.getElementById("addTagBtn");
-  const input = document.getElementById("tagNameInp");
-  const name = input.value.trim().toLowerCase();
+function confirmTagDelete(id, name) {
+  deleteTagId = id;
+  document.getElementById("delTagName").textContent = name;
+  openModal("delTagModal");
+}
 
-  if (name.length < 2 || name.length > 20 || !/^[a-z]+$/i.test(name)) {
-    showToast("Tag name must be 2–20 letters only.", "error");
+async function handleDeleteTag() {
+  if (!deleteTagId) return;
+  const btn = document.getElementById("confirmTagDelBtn");
+  btn.disabled = true;
+  btn.innerHTML = `${icon("refresh-cw", 14)} Deleting…`;
+  try {
+    const tag = tags.find(t => String(t.id) === String(deleteTagId));
+    const tagName = tag ? tag.tag_name : null;
+    if (!tagName) { showToast("Tag not found.", "error"); return; }
+    const res = await apiFetch(`/tags/delete_tag?tag=${encodeURIComponent(tagName)}`, { method: "DELETE" });
+    if (res && res.ok) {
+      tags = tags.filter(t => String(t.id) !== String(deleteTagId));
+      renderTags();
+      closeModal("delTagModal");
+      showToast("Tag deleted.", "success");
+    } else {
+      const d = res ? await res.json().catch(() => ({})) : {};
+      showToast(d.detail || "Could not delete tag.", "error");
+    }
+  } catch {
+    showToast("Network error.", "error");
+  } finally {
+    btn.innerHTML = `${icon("trash-2", 14)} Delete`;
+    btn.disabled = false;
+    deleteTagId = null;
+  }
+}
+
+async function handleAddTag(e) {
+  e.preventDefault();
+  const btn     = document.getElementById("addTagBtn");
+  // Allow letters, numbers, spaces and hyphens; 2–30 chars; saved lowercase
+  const raw     = document.getElementById("tagNameInp").value.trim();
+  const tagName = raw.toLowerCase();
+
+  if (!tagName || tagName.length < 2) {
+    showToast("Tag name must be at least 2 characters.", "error");
+    return;
+  }
+  if (tagName.length > 30) {
+    showToast("Tag name must be under 30 characters.", "error");
+    return;
+  }
+  if (!/^[a-z0-9][a-z0-9 \-]*$/.test(tagName)) {
+    showToast("Tag name: letters, numbers, spaces and hyphens only.", "error");
     return;
   }
 
   btn.disabled = true;
+  btn.innerHTML = `${icon("refresh-cw", 14)} Creating…`;
   try {
-    await api.post("/tags", { name });
-    showToast("Tag created.", "success");
-    closeModal("addTagModal");
-    document.getElementById("addTagForm").reset();
-    await loadTags();
-  } catch (err) {
-    showToast(err.message || "Could not create tag.", "error");
+    const res = await apiFetch("/tags/add_tags", { method: "POST", body: JSON.stringify({ tag_name: tagName }) });
+    if (!res) return;
+    const data = await res.json();
+    if (res.ok) {
+      closeModal("addTagModal");
+      document.getElementById("tagNameInp").value = "";
+      showToast(`Tag "${tagName}" created!`, "success");
+      await loadTags();
+    } else {
+      showToast(data.detail || "Could not create tag.", "error");
+    }
+  } catch {
+    showToast("Network error.", "error");
   } finally {
+    btn.innerHTML = `${icon("plus", 14)} Create Tag`;
     btn.disabled = false;
-  }
-}
-
-window.__deleteTag = (id, name) => {
-  pendingDeleteId = id;
-  document.getElementById("delTagName").textContent = name;
-  document.getElementById("delTagModal")?.classList.add("open");
-};
-
-async function handleConfirmDelete() {
-  if (!pendingDeleteId) return;
-  const btn = document.getElementById("confirmTagDelBtn");
-  btn.disabled = true;
-  try {
-    await api.delete(`/tags/${pendingDeleteId}`);
-    showToast("Tag deleted.", "success");
-    closeModal("delTagModal");
-    await loadTags();
-  } catch (err) {
-    showToast(err.message || "Could not delete tag.", "error");
-  } finally {
-    btn.disabled = false;
-    pendingDeleteId = null;
   }
 }
