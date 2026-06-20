@@ -1,6 +1,22 @@
-import { apiFetch, showToast, esc, inr, fmt, openModal, closeModal, overlayClose } from "./utils.js";
+/**
+ * settlements.js
+ *
+ * All mutations go through api.js (addDebt / updateDebt / deleteDebt)
+ * which call invalidateDebts() on success, so the next fetchDebts() call
+ * goes back to the server automatically.
+ */
+
+import {
+  fetchDebts, fetchUser,
+  addDebt, updateDebt, deleteDebt,
+} from "./api.js";
 import { validateAmount, validatePersonName } from "./auth.js";
-import { icon } from "./icons.js";
+import {
+  showToast, esc, inr, fmt,
+  openModal, closeModal, overlayClose,
+  renderNavbar, renderSidebar, showFlash,
+} from "./utils.js";
+import { icon }              from "./icons.js";
 import { initPageAnimations } from "./animations.js";
 
 let debts      = [];
@@ -9,6 +25,14 @@ let deleteId   = null;
 let editId     = null;
 
 export async function initSettlements() {
+  showFlash();
+
+  const user = await fetchUser();
+  if (!user) return;
+
+  renderNavbar(user);
+  renderSidebar();
+
   overlayClose("addDebtModal");
   overlayClose("editDebtModal");
   overlayClose("delDebtModal");
@@ -28,11 +52,13 @@ export async function initSettlements() {
   document.getElementById("editDebtForm").addEventListener("submit", handleEditDebt);
   document.getElementById("confirmDebtDelBtn").addEventListener("click", handleDeleteDebt);
 
-  await loadDebts();
+  await _loadDebts();
   initPageAnimations();
 }
 
-async function loadDebts() {
+// ── Data loader ───────────────────────────────────────────────────────────────
+
+async function _loadDebts() {
   document.getElementById("debtView").innerHTML = `
     <div style="padding:24px">
       <div class="skel skel-row"></div>
@@ -40,22 +66,23 @@ async function loadDebts() {
       <div class="skel skel-row"></div>
     </div>`;
 
-  const res = await apiFetch("/settlements/View_debt");
+  debts = await fetchDebts();
 
-  if (!res) {
-    document.getElementById("debtView").innerHTML = `<div class="empty"><div class="empty-icon">${icon("alert-circle",40)}</div><h3>Could not load settlements.</h3></div>`;
+  if (!debts.length && debts == []) {
+    // fetchDebts returns [] on error (already showed a network toast)
+    document.getElementById("debtView").innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${icon("alert-circle",40)}</div>
+        <h3>Could not load settlements.</h3>
+      </div>`;
     return;
   }
-  if (!res.ok) {
-    document.getElementById("debtView").innerHTML = `<div class="empty"><div class="empty-icon">${icon("alert-circle",40)}</div><h3>Failed to load settlements.</h3></div>`;
-    showToast("Failed to load settlements.", "error");
-    return;
-  }
 
-  debts = await res.json();
   renderStats();
   renderDebts();
 }
+
+// ── Renderers (unchanged from v1) ─────────────────────────────────────────────
 
 function renderStats() {
   const youOwe    = debts.filter(d => d.debt_type === "borrowed" && d.debt_status === "pending").reduce((s, d) => s + Number(d.amount || 0), 0);
@@ -152,7 +179,8 @@ function renderDebts() {
 function switchTab(tab) {
   currentTab = tab;
   ["all", "pending", "paid"].forEach(t => {
-    document.getElementById("tab" + t.charAt(0).toUpperCase() + t.slice(1))?.classList.toggle("active", t === tab);
+    document.getElementById("tab" + t.charAt(0).toUpperCase() + t.slice(1))
+      ?.classList.toggle("active", t === tab);
   });
   renderDebts();
 }
@@ -174,14 +202,16 @@ function confirmDelete(id, name) {
   openModal("delDebtModal");
 }
 
+// ── Mutation handlers ─────────────────────────────────────────────────────────
+
 async function handleDeleteDebt() {
   if (!deleteId) return;
   const btn = document.getElementById("confirmDebtDelBtn");
   btn.disabled = true;
   btn.innerHTML = `${icon("refresh-cw", 14)} Deleting…`;
   try {
-    const res = await apiFetch(`/settlements/delete_debt?del_id=${deleteId}`, { method: "DELETE" });
-    if (res && res.ok) {
+    const ok = await deleteDebt(deleteId);   // invalidates cache internally
+    if (ok) {
       debts = debts.filter(d => d.id !== deleteId);
       renderStats();
       renderDebts();
@@ -219,13 +249,11 @@ async function handleEditDebt(e) {
   };
 
   try {
-    const res = await apiFetch(`/settlements/update_debt/${editId}`, { method: "PUT", body: JSON.stringify(body) });
-    if (!res) return;
-    const data = await res.json();
-    if (res.ok) {
+    const { ok, data } = await updateDebt(editId, body);  // invalidates cache internally
+    if (ok) {
       closeModal("editDebtModal");
       showToast("Settlement updated!", "success");
-      await loadDebts();
+      await _loadDebts();
     } else {
       showToast(data.detail || "Could not update.", "error");
     }
@@ -233,7 +261,7 @@ async function handleEditDebt(e) {
     showToast("Network error.", "error");
   } finally {
     btn.innerHTML = `${icon("check", 14)} Save Changes`;
-    btn.disabled = false;
+    btn.disabled  = false;
   }
 }
 
@@ -258,15 +286,13 @@ async function handleAddDebt(e) {
   };
 
   try {
-    const res = await apiFetch("/settlements/Add_debt", { method: "POST", body: JSON.stringify(body) });
-    if (!res) return;
-    const data = await res.json();
-    if (res.ok) {
+    const { ok, data } = await addDebt(body);   // invalidates cache internally
+    if (ok) {
       closeModal("addDebtModal");
       document.getElementById("addDebtForm").reset();
       document.getElementById("debtDate").value = new Date().toISOString().split("T")[0];
       showToast("Settlement added!", "success");
-      await loadDebts();
+      await _loadDebts();
     } else {
       showToast(data.detail || "Could not add settlement.", "error");
     }
@@ -274,6 +300,6 @@ async function handleAddDebt(e) {
     showToast("Network error.", "error");
   } finally {
     btn.innerHTML = `${icon("plus", 14)} Add Settlement`;
-    btn.disabled = false;
+    btn.disabled  = false;
   }
 }

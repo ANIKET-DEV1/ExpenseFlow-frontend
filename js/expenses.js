@@ -1,6 +1,22 @@
-import { apiFetch, showToast, esc, inr, fmt, openModal, closeModal, overlayClose } from "./utils.js";
+/**
+ * expenses.js
+ *
+ * All data operations go through api.js helpers which own cache invalidation.
+ * Local `allExpenses` / `allTags` hold the working copy for rendering;
+ * they are refreshed from the cache after every mutation.
+ */
+
+import {
+  fetchExpenses, fetchTags, fetchUser,
+  addExpense, deleteExpense,
+} from "./api.js";
 import { validateAmount } from "./auth.js";
-import { icon } from "./icons.js";
+import {
+  showToast, esc, inr, fmt,
+  openModal, closeModal, overlayClose,
+  renderNavbar, renderSidebar, showFlash,
+} from "./utils.js";
+import { icon }              from "./icons.js";
 import { initPageAnimations } from "./animations.js";
 
 let allExpenses = [];
@@ -9,6 +25,14 @@ let currentTab  = "all";
 let deleteId    = null;
 
 export async function initExpenses() {
+  showFlash();
+
+  const user = await fetchUser();
+  if (!user) return;
+
+  renderNavbar(user);
+  renderSidebar();
+
   overlayClose("addModal");
   overlayClose("delModal");
 
@@ -18,30 +42,32 @@ export async function initExpenses() {
   document.getElementById("addForm").addEventListener("submit", handleAddExpense);
   document.getElementById("confirmDelBtn").addEventListener("click", handleDeleteExpense);
 
-  window.openModal      = openModal;
-  window.closeModal     = closeModal;
-  window.switchTab      = switchTab;
-  window.applyFilter    = applyFilter;
-  window.confirmDelete  = confirmDelete;
-  window.toggleGroup    = toggleGroup;
+  // Expose globals needed by inline HTML event attributes (data-action wires use
+  // addEventListener internally, but openModal / closeModal stay globally available
+  // for the modal backdrop dismiss buttons in HTML).
+  window.openModal     = openModal;
+  window.closeModal    = closeModal;
+  window.switchTab     = switchTab;
+  window.applyFilter   = applyFilter;
+  window.confirmDelete = confirmDelete;
+  window.toggleGroup   = toggleGroup;
 
-  await loadTags();
-  await loadExpenses();
+  await _loadTags();
+  await _loadExpenses();
   initPageAnimations();
 }
 
-async function loadTags() {
-  const res = await apiFetch("/tags/view_tags");
-  if (!res || !res.ok) return;
-  allTags = await res.json();
+// ── Data loaders ──────────────────────────────────────────────────────────────
+
+async function _loadTags() {
+  allTags = await fetchTags();
   const sel = document.getElementById("addTag");
   sel.innerHTML = allTags.length
     ? allTags.map(t => `<option value="${esc(t.tag_name)}">${esc(t.tag_name)}</option>`).join("")
     : `<option disabled>No tags yet — add one in Tags page</option>`;
 }
 
-async function loadExpenses() {
-  // Show skeleton while loading
+async function _loadExpenses() {
   document.getElementById("expenseView").innerHTML = `
     <div style="padding:24px">
       <div class="skel skel-row"></div>
@@ -49,39 +75,22 @@ async function loadExpenses() {
       <div class="skel skel-row"></div>
     </div>`;
 
-  const res = await apiFetch("/expenses/view_expenses");
-
-  // Always stop skeleton regardless of result
-  if (!res) {
-    showEmptyState("expenseView", "Could not load expenses. Please try again.", "alert-circle");
-    return;
-  }
-  if (!res.ok) {
-    showEmptyState("expenseView", "Failed to load expenses.", "alert-circle");
-    showToast("Failed to load expenses.", "error");
-    return;
-  }
-
-  allExpenses = await res.json();
+  allExpenses = await fetchExpenses();
   renderStats();
   renderView();
 }
 
-function showEmptyState(containerId, message, iconName = "credit-card") {
-  document.getElementById(containerId).innerHTML = `
-    <div class="empty">
-      <div class="empty-icon">${icon(iconName, 40)}</div>
-      <h3>${esc(message)}</h3>
-    </div>`;
-}
+// ── Stats / view renderers (unchanged from v1) ────────────────────────────────
 
 function renderStats() {
   const total   = allExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const now     = new Date();
-  const month   = allExpenses.filter(e => {
-    const d = new Date(e.expense_date);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).reduce((s, e) => s + Number(e.amount || 0), 0);
+  const month   = allExpenses
+    .filter(e => {
+      const d = new Date(e.expense_date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    })
+    .reduce((s, e) => s + Number(e.amount || 0), 0);
   const cash    = allExpenses.filter(e => e.payment_type === "CASH").reduce((s, e) => s + Number(e.amount || 0), 0);
   const digital = allExpenses.filter(e => e.payment_type !== "CASH").reduce((s, e) => s + Number(e.amount || 0), 0);
 
@@ -110,7 +119,7 @@ function renderStats() {
 }
 
 function filtered() {
-  const q   = document.getElementById("searchInp").value.toLowerCase().trim();
+  const q   = (document.getElementById("searchInp").value ?? "").toLowerCase().trim();
   const pay = document.getElementById("payFilter").value;
   return allExpenses.filter(e => {
     const matchQ   = !q || (e.tag_name || "").toLowerCase().includes(q) || (e.description || "").toLowerCase().includes(q);
@@ -132,7 +141,7 @@ function payBadge(pt) {
     UPI:  { cls: "bb", label: "UPI" },
     CARD: { cls: "bg", label: "Card" },
   };
-  const b = map[pt] || { cls: "bs", label: pt || "—" };
+  const b = map[pt] ?? { cls: "bs", label: pt || "—" };
   return `<span class="badge ${b.cls}">${esc(b.label)}</span>`;
 }
 
@@ -152,7 +161,7 @@ function renderTable(data) {
         <th>Tag</th><th>Description</th><th>Date</th><th>Payment</th><th class="mono">Amount</th><th></th>
       </tr></thead>
       <tbody>
-        ${data.sort((a,b) => new Date(b.expense_date) - new Date(a.expense_date)).map(e => `
+        ${[...data].sort((a,b) => new Date(b.expense_date) - new Date(a.expense_date)).map(e => `
           <tr>
             <td><span class="badge bg">${esc(e.tag_name)}</span></td>
             <td style="color:var(--text-muted)">${esc(e.description) || "—"}</td>
@@ -191,33 +200,34 @@ function renderGrouped(data, by) {
     by === "month" ? new Date("1 " + b) - new Date("1 " + a) : a.localeCompare(b)
   );
 
-  document.getElementById("expenseView").innerHTML = `<div style="padding:16px">` + sortedKeys.map((key, idx) => {
-    const items = groups[key];
-    const total = items.reduce((s, e) => s + Number(e.amount || 0), 0);
-    const gid   = "grp-" + idx;
-    return `
-      <div class="group-header" data-toggle="${gid}">
-        <span>${esc(key)} <span style="color:var(--text-faint);font-weight:400;font-size:0.78rem">(${items.length})</span></span>
-        <span class="group-total">${inr(total)}</span>
-      </div>
-      <div class="group-body" id="${gid}">
-        <table style="margin-bottom:8px">
-          <thead><tr><th>Description</th><th>Date</th><th>Payment</th><th class="mono">Amount</th><th></th></tr></thead>
-          <tbody>
-            ${items.map(e => `
-              <tr>
-                <td>${esc(e.description) || `<span style="color:var(--text-faint)">—</span>`}</td>
-                <td style="color:var(--text-muted)">${fmt(e.expense_date)}</td>
-                <td>${payBadge(e.payment_type)}</td>
-                <td class="mono debit">${inr(e.amount)}</td>
-                <td><button class="btn btn-danger btn-sm btn-icon" data-id="${esc(String(e.id))}" data-action="delete" title="Delete">${icon("trash-2", 14)}</button></td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }).join("") + `</div>`;
+  document.getElementById("expenseView").innerHTML =
+    `<div style="padding:16px">` + sortedKeys.map((key, idx) => {
+      const items = groups[key];
+      const total = items.reduce((s, e) => s + Number(e.amount || 0), 0);
+      const gid   = "grp-" + idx;
+      return `
+        <div class="group-header" data-toggle="${gid}">
+          <span>${esc(key)} <span style="color:var(--text-faint);font-weight:400;font-size:0.78rem">(${items.length})</span></span>
+          <span class="group-total">${inr(total)}</span>
+        </div>
+        <div class="group-body" id="${gid}">
+          <table style="margin-bottom:8px">
+            <thead><tr><th>Description</th><th>Date</th><th>Payment</th><th class="mono">Amount</th><th></th></tr></thead>
+            <tbody>
+              ${items.map(e => `
+                <tr>
+                  <td>${esc(e.description) || `<span style="color:var(--text-faint)">—</span>`}</td>
+                  <td style="color:var(--text-muted)">${fmt(e.expense_date)}</td>
+                  <td>${payBadge(e.payment_type)}</td>
+                  <td class="mono debit">${inr(e.amount)}</td>
+                  <td><button class="btn btn-danger btn-sm btn-icon" data-id="${esc(String(e.id))}" data-action="delete" title="Delete">${icon("trash-2", 14)}</button></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }).join("") + `</div>`;
 
   document.querySelectorAll("[data-toggle]").forEach(el => {
     el.addEventListener("click", () => toggleGroup(el.dataset.toggle));
@@ -231,10 +241,13 @@ function wireRowActions() {
   });
 }
 
+// ── UI callbacks (exposed as window.* for legacy HTML attributes) ─────────────
+
 function switchTab(tab) {
   currentTab = tab;
   ["all", "tag", "month"].forEach(t => {
-    document.getElementById("tab" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
+    document.getElementById("tab" + t.charAt(0).toUpperCase() + t.slice(1))
+      ?.classList.toggle("active", t === tab);
   });
   renderView();
 }
@@ -251,14 +264,18 @@ function confirmDelete(id) {
   openModal("delModal");
 }
 
+// ── Mutation handlers ─────────────────────────────────────────────────────────
+
 async function handleDeleteExpense() {
   if (!deleteId) return;
   const btn = document.getElementById("confirmDelBtn");
   btn.disabled = true;
   btn.innerHTML = `${icon("refresh-cw", 14)} Deleting…`;
+
   try {
-    const res = await apiFetch(`/expenses/delete_expense?expenseId=${deleteId}`, { method: "DELETE" });
-    if (res && res.ok) {
+    const ok = await deleteExpense(deleteId);  // invalidates cache internally
+    if (ok) {
+      // Optimistically remove from local working copy
       allExpenses = allExpenses.filter(e => e.id !== deleteId);
       renderStats();
       renderView();
@@ -271,8 +288,8 @@ async function handleDeleteExpense() {
     showToast("Network error.", "error");
   } finally {
     btn.innerHTML = `${icon("trash-2", 14)} Delete`;
-    btn.disabled = false;
-    deleteId = null;
+    btn.disabled  = false;
+    deleteId      = null;
   }
 }
 
@@ -280,10 +297,9 @@ async function handleAddExpense(e) {
   e.preventDefault();
   const btn = document.getElementById("addBtn");
 
-  const amountVal = document.getElementById("addAmount").value;
+  const amountVal  = document.getElementById("addAmount").value;
   const amountErrs = validateAmount(amountVal);
   if (amountErrs.length) { showToast(amountErrs[0], "error"); return; }
-
   if (!document.getElementById("addTag").value) { showToast("Please select a tag.", "error"); return; }
 
   btn.disabled = true;
@@ -298,15 +314,14 @@ async function handleAddExpense(e) {
   };
 
   try {
-    const res = await apiFetch("/expenses/add_expenses", { method: "POST", body: JSON.stringify(body) });
-    if (!res) return;
-    const data = await res.json();
-    if (res.ok) {
+    const { ok, data } = await addExpense(body);  // invalidates cache internally
+    if (ok) {
       closeModal("addModal");
       showToast("Expense added!", "success");
       document.getElementById("addForm").reset();
       document.getElementById("addDate").value = new Date().toISOString().split("T")[0];
-      await loadExpenses();
+      // Re-fetch from cache (which was just invalidated, so this hits the server)
+      await _loadExpenses();
     } else {
       showToast(data.detail || "Failed to add expense.", "error");
     }
@@ -314,6 +329,6 @@ async function handleAddExpense(e) {
     showToast("Network error.", "error");
   } finally {
     btn.innerHTML = `${icon("plus", 14)} Add Expense`;
-    btn.disabled = false;
+    btn.disabled  = false;
   }
 }

@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
-<nav class="topnav" id="topnav"></nav>
+<nav class="topnav" id="global-navbar"></nav> 
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="shell">
   <aside class="sidebar" id="sidebar"></aside>
@@ -164,12 +164,13 @@
 </div>
 
 <script type="module">
-  import { requireAuth, renderTopnav, renderSidebar } from "../js/utils.js";
-  import { initSettlements } from "../js/settlements.js";
+  import { fetchUser } from "./js/api.js";
+  import { renderNavbar, renderSidebar } from "./js/utils.js";
+  import { initSettlements } from "./js/settlements.js";
 
-  const user = await requireAuth();
+  const user = await fetchUser();
   if (!user) throw new Error("not authed");
-  renderTopnav(user);
+  renderNavbar(user);
   renderSidebar();
   initSettlements();
 </script>

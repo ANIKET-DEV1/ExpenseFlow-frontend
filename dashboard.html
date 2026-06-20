@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
-<nav class="topnav" id="topnav"></nav>
+<nav class="topnav" id="global-navbar"></nav>  
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="shell">
   <aside class="sidebar" id="sidebar"></aside>
@@ -75,22 +75,16 @@
 </div>
 
 <script type="module">
-import { requireAuth, renderTopnav, renderSidebar, showFlash } from "../js/utils.js";
-import { loadDashboard } from "../js/dashboard.js";
-import { initRipples } from "../js/animations.js";
+import { initDashboard } from "./js/dashboard.js";
+import { initRipples } from "./js/animations.js";
 
-const user = await requireAuth();
+const user = await initDashboard();
 if (!user) throw new Error("not authed");
-
-renderTopnav(user);
-renderSidebar();
 
 const hour  = new Date().getHours();
 const greet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 document.getElementById("greeting").textContent = `${greet}, ${user.username}`;
 
-showFlash();
-loadDashboard();
 initRipples();
 </script>
 </body>

@@ -9,7 +9,7 @@
 </head>
 <body>
   
-<nav class="topnav" id="topnav"></nav>
+<nav class="topnav" id="global-navbar"></nav> 
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
 <div class="shell">
@@ -87,12 +87,13 @@
 </div>
 
 <script type="module">
-import { requireAuth, renderTopnav, renderSidebar } from "../js/utils.js";
-import { initTags } from "../js/tags.js";
+import { fetchUser } from "./js/api.js";
+import { renderNavbar, renderSidebar } from "./js/utils.js";
+import { initTags } from "./js/tags.js";
 
-const user = await requireAuth();
+const user = await fetchUser();
 if (!user) throw new Error("not authed");
-renderTopnav(user);
+renderNavbar(user);
 renderSidebar();
 initTags();
 </script>

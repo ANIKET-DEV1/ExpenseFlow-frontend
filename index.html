@@ -122,8 +122,8 @@
 </footer>
 
 <script type="module">
-import { BASE_URL } from "../js/api.js";
-import { initScrollReveal } from "../js/animations.js";
+import { BASE_URL } from "./js/api.js";
+import { initScrollReveal } from "./js/animations.js";
 (async () => {
   try {
     const res = await fetch(`${BASE_URL}/auth/me`, { credentials: "include" });

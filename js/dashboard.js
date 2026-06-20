@@ -1,17 +1,32 @@
-import { apiFetch, showToast, esc, inr, fmt } from "./utils.js";
-import { icon } from "./icons.js";
+/**
+ * dashboard.js
+ *
+ * Uses fetchExpenses() and fetchDebts() from api.js so both calls hit the
+ * in-memory cache if the data was already loaded by another page in the same
+ * session. The navbar is rendered via renderNavbar() from utils.js.
+ */
+
+import { fetchExpenses, fetchDebts, fetchUser } from "./api.js";
+import { showToast, inr, esc, fmt, renderNavbar, renderSidebar, showFlash } from "./utils.js";
+import { icon }      from "./icons.js";
 import { staggerIn } from "./animations.js";
 
-export async function loadDashboard() {
-  try {
-    const [expRes, debtRes] = await Promise.all([
-      apiFetch("/expenses/view_expenses"),
-      apiFetch("/settlements/View_debt"),
-    ]);
+export async function initDashboard() {
+  showFlash();
 
-    // Always resolve to arrays — empty or not
-    const expenses = (expRes && expRes.ok) ? await expRes.json() : [];
-    const debts    = (debtRes && debtRes.ok) ? await debtRes.json() : [];
+  const user = await fetchUser();   // cached after first call; redirects on 401
+  if (!user) return;
+
+  renderNavbar(user);
+  renderSidebar();
+
+  await loadDashboard();
+  return user;   // returned so dashboard.html can set the personalised greeting
+}
+
+async function loadDashboard() {
+  try {
+    const [expenses, debts] = await Promise.all([fetchExpenses(), fetchDebts()]);
 
     renderStats(expenses, debts);
     renderRecent(expenses);
@@ -19,21 +34,17 @@ export async function loadDashboard() {
     renderDebtStats(debts);
     staggerIn(".stat-card");
   } catch (err) {
-    // Stop skeletons even on error
     clearSkeletons();
     showToast("Could not load dashboard data.", "error");
   }
 }
 
 function clearSkeletons() {
-  const statRow = document.getElementById("statRow");
-  if (statRow) statRow.innerHTML = `<div class="empty" style="grid-column:1/-1"><p>Could not load stats.</p></div>`;
-  const recentList = document.getElementById("recentList");
-  if (recentList) recentList.innerHTML = `<div class="empty"><p>Could not load data.</p></div>`;
-  const tagBreakdown = document.getElementById("tagBreakdown");
-  if (tagBreakdown) tagBreakdown.innerHTML = `<div class="empty"><p>Could not load data.</p></div>`;
-  const debtStats = document.getElementById("debtStats");
-  if (debtStats) debtStats.innerHTML = `<div class="empty"><p>Could not load data.</p></div>`;
+  const empty = `<div class="empty" style="grid-column:1/-1"><p>Could not load stats.</p></div>`;
+  ["statRow", "recentList", "tagBreakdown", "debtStats"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = empty;
+  });
 }
 
 function renderStats(expenses, debts) {
