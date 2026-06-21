@@ -177,7 +177,6 @@ ul { list-style: none; }
   padding: 84px 14px 20px;
   flex-shrink: 0;
   position: sticky; top: 0; height: 100vh; overflow-y: auto;
-  position: relative;
 }
 .sidebar::before {
   content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
