@@ -6,6 +6,7 @@
   <title>Dashboard — ExpenseTracker</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 <div id="cursor-dot"></div>
@@ -36,6 +37,17 @@
         <div class="stat-card r"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
         <div class="stat-card a"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
         <div class="stat-card b"><div class="skel" style="height:16px;width:60%;margin-bottom:10px"></div><div class="skel" style="height:28px;width:80%"></div></div>
+      </div>
+
+      <!-- Spend Outflow Analytics Chart Card -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-weight:700;font-size:0.95rem">Spend Outflow Analytics</div>
+          <div style="font-size:0.78rem;color:var(--text-muted)">Last 6 Months</div>
+        </div>
+        <div style="position:relative; height: 260px; width: 100%;">
+          <canvas id="analyticsChart"></canvas>
+        </div>
       </div>
 
       <!-- Recent expenses + top tags -->
@@ -72,6 +84,34 @@
         </div>
       </div>
 
+      <!-- Animated FAQ / Q&A Card -->
+      <div class="card" style="margin-top:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-weight:700;font-size:0.95rem">Interactive Help Q&A</div>
+          <span style="font-size:0.75rem;color:var(--text-faint)" class="mono">Learn the Flow</span>
+        </div>
+        <div class="faq-list">
+          <div class="faq-item" style="border-color:var(--border)">
+            <div class="faq-q" style="font-size:0.84rem;padding:12px 14px" onclick="toggleFaq(this)">
+              How are settlements tracked? 
+              <span class="arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </span>
+            </div>
+            <div class="faq-a" style="font-size:0.78rem">Settlements record outstanding balances between you and others. 'Lent' means they owe you, and 'Borrowed' means you owe them. Mark as settled when paid.</div>
+          </div>
+          <div class="faq-item" style="border-color:var(--border);margin-top:8px">
+            <div class="faq-q" style="font-size:0.84rem;padding:12px 14px" onclick="toggleFaq(this)">
+              Why use custom tags? 
+              <span class="arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </span>
+            </div>
+            <div class="faq-a" style="font-size:0.78rem">Tags help categorize your spendings (e.g., Food, Travel, Rent). This powers the tag breakdown chart on the dashboard, making it easy to identify saving opportunities.</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 </div>
@@ -94,6 +134,20 @@ document.getElementById("greeting").textContent = `${greet}, ${user.username}`;
 showFlash();
 loadDashboard();
 initPageAnimations();
+
+function toggleFaq(el) {
+  const ans    = el.nextElementSibling;
+  const isOpen = ans.classList.contains("open");
+  el.closest(".faq-list").querySelectorAll(".faq-a.open").forEach(a => {
+    a.classList.remove("open");
+    a.previousElementSibling.classList.remove("open");
+  });
+  if (!isOpen) { 
+    ans.classList.add("open"); 
+    el.classList.add("open"); 
+  }
+}
+window.toggleFaq = toggleFaq;
 </script>
 </body>
 </html>

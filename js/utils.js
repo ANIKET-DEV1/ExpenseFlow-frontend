@@ -50,6 +50,7 @@ export function esc(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+export const escapeHtml = esc;
 
 // ── Money ──────────────────────────────────────────
 export function inr(n) {
@@ -137,12 +138,21 @@ export function renderTopnav(user) {
     document.dispatchEvent(new CustomEvent("open-mobile-sidebar"));
   });
 
-  // Setup theme toggle icon placeholder interaction
+  // Setup theme toggle using CSS variables and persist choice
   const toggleBtn = document.getElementById("themeToggle");
+  const savedTheme = localStorage.getItem("theme") || "dark";
+  if (savedTheme === "light") {
+    document.body.classList.add("light-mode");
+    toggleBtn.innerHTML = icon("sun", 16);
+  } else {
+    toggleBtn.innerHTML = icon("moon", 16);
+  }
   toggleBtn.addEventListener("click", () => {
-    const isDark = document.body.style.filter === "";
-    document.body.style.filter = isDark ? "invert(0.92) hue-rotate(180deg)" : "";
-    toggleBtn.innerHTML = isDark ? icon("sun", 16) : icon("moon", 16);
+    document.body.classList.toggle("light-mode");
+    const isLight = document.body.classList.contains("light-mode");
+    localStorage.setItem("theme", isLight ? "light" : "dark");
+    toggleBtn.innerHTML = isLight ? icon("sun", 16) : icon("moon", 16);
+    document.dispatchEvent(new CustomEvent("theme-changed", { detail: { theme: isLight ? "light" : "dark" } }));
   });
 }
 

@@ -35,7 +35,7 @@ export function initProfile(user) {
       </div>
 
       <!-- Details Grid -->
-      <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="form-grid">
         <!-- Username Card -->
         <div style="background:rgba(255,255,255,0.01);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:14px">
           <div style="color:var(--text-muted);opacity:0.8">${icon("user", 20)}</div>

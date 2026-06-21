@@ -1,6 +1,9 @@
 import { apiFetch, showToast, esc, inr, fmt } from "./utils.js";
 import { icon } from "./icons.js";
 import { staggerIn } from "./animations.js";
+import { renderAnalyticsChart } from "./chart.js";
+
+let allExpenses = [];
 
 export async function loadDashboard() {
   try {
@@ -10,13 +13,14 @@ export async function loadDashboard() {
     ]);
 
     // Always resolve to arrays — empty or not
-    const expenses = (expRes && expRes.ok) ? await expRes.json() : [];
+    allExpenses = (expRes && expRes.ok) ? await expRes.json() : [];
     const debts    = (debtRes && debtRes.ok) ? await debtRes.json() : [];
 
-    renderStats(expenses, debts);
-    renderRecent(expenses);
-    renderTagBreakdown(expenses);
+    renderStats(allExpenses, debts);
+    renderRecent(allExpenses);
+    renderTagBreakdown(allExpenses);
     renderDebtStats(debts);
+    renderAnalyticsChart("analyticsChart", allExpenses);
     staggerIn(".stat-card");
   } catch (err) {
     // Stop skeletons even on error
@@ -150,3 +154,10 @@ function renderDebtStats(debts) {
     </div>
   `;
 }
+
+// Redraw chart when theme changes
+document.addEventListener("theme-changed", () => {
+  if (allExpenses && allExpenses.length) {
+    renderAnalyticsChart("analyticsChart", allExpenses);
+  }
+});
