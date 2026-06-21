@@ -225,7 +225,7 @@ async function handleEditDebt(e) {
   };
 
   try {
-    const res = await apiFetch(`/settlements/update_debt/${editId}`, { method: "PUT", body: JSON.stringify(body) });
+    const res = await apiFetch(`/settlements/update_debt?int_id=${editId}`, { method: "PUT", body: JSON.stringify(body) });
     if (!res) return;
     const data = await res.json();
     if (res.ok) {
